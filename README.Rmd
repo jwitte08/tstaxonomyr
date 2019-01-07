@@ -1,0 +1,86 @@
+---
+output: github_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  cache = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+# tstaxonomyr
+
+A time series taxonomy to classify univariate or multivariate time
+series based on 24 different (statistical) time series features.
+The taxonomy function of this package 'classify_ts' generates and collects all
+feature values. Next the feature values are scaled to [0,1] and then assigned
+to the defined taxonomy factors. Additionally, each feature can be calculated 
+for it own. 
+
+## Usage
+
+```{r usage, eval = FALSE}
+library(tstaxonomyr)
+# Use the univariate time series object 'BJsales'
+ts_sales = datasets::BJsales
+# Classify the time series based on the defined taxonomy in 'classify_ts'
+classified_ts <- classify_ts(ts = ts_sales, na_option = "mean")
+classified_ts
+```
+
+## Installation
+
+You can install the **development** version 1.0.0 from [Github](https://github.com/mowomoyela/tstaxonomyr) with:
+
+```{r gh-installation, eval = FALSE}
+devtools::install_github("mowomoyela/tstaxonomyr")
+```
+
+
+## Overview
+
+All provided functions of this package:
+
+* Version 1.0.0
+    * classify_ts: Classifies a time series based on the defined ts taxonomy features.
+    * calculate_skewness: Generates the skewness of an ts object.
+    * calculate_kurtosis: Generates the kurtosis of an ts object.
+    * calculate_trend: Generates the trend of an ts object.
+    * calculate_autocorrelation: Generates the mean of the autocorrelationfunction (ACF) of an ts object.
+    * calculate_mean: Generates the mean of the normalized values [0,1] of an ts object.
+    * calculate_sd: Generates the standard deviation of an ts object.
+    * calculate_observationnumber: Generates the number of observations of an ts object.
+    * calculate_non_linearity: Generates the non linearity factor of an ts object.
+    * calculate_seasonality: Generates the seasonality factor of an ts object.
+    * calculate_periodicity: Generates the periodicity/frequency factor of an ts object.
+    * calculate_chaos: Generates the maximum Lyapunov exponent (chaos) of an ts object.
+    * calculate_entropy: Generates the approximate entropy of an ts object.
+    * calculate_selfsimilarity: Generates the Hurst exponent of an ts object.
+    * calculate_dtw_blockdistance: Generates the dynamic time warping (DTW) for an ts object to the 1000 ts from the list in /data.
+    * calculate_turningpoint_percentage: Generates the percentage of turning points of an ts object.
+    * calculate_partial_autocorrelation: Generates the mean of the partial autocorrelationfunction (PACF) of an ts object.
+    * calculate_variance: Generates the variance of an ts object.
+    * calculate_outlier_percentage: Generates the percentage of outliers of an ts object.
+    * calculate_stepchange_percentage: Generates the percentage of step changes of an ts object.
+    * calculate_peak_percentage: Generates the percentage of peaks of an ts object.
+    * calculate_durbin_watson_test: Generates the autocorrelation measure of an data.frame object.
+    * calculate_quartile_distribution: Generates the percentage of the values in the 4 quartiles of an ts object.
+    * calculate_determination_coefficient: Generates the coefficient of determination (R2) of an data.frame object.
+    * calculate_attributenumber: Generates the number of attributes of an data.frame object.
+    * get_ts_frequency: Get the period of an vector object.
+    * decompose_ts: Decompose a time series object into trend, seasonal and remainder.
+    * scale_feature: Scale a numeric value into a standardized interval [0,1].
+    * get_ts_list: Get the time series list containing 1000 time series data.
+    * get_blocklist: Get the blocklist with the matrices for the DTW distance calucation.
+
+
+## License
+
+This package is free and open source software, licensed under GPL-2.
