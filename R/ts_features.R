@@ -7,16 +7,16 @@
 #'
 #' @param ts A time series object.
 #' @return The skewness of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the input is not a ts object, an error message is returned.
 #' @examples
-#' calculate_skewness(ts = tsobject)
+#' calculate_skewness(ts = datasets::BJsales)
 #' @export
 calculate_skewness <- function(ts){
   # If else clause to check the input
   if(is.ts(ts)){
     return(skewness(ts, na.rm = FALSE, type = 3))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 }
 
@@ -30,14 +30,14 @@ calculate_skewness <- function(ts){
 #' @return The skewness of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_kurtosis(ts = tsobject)
+#' calculate_kurtosis(ts = datasets::BJsales)
 #' @export
 calculate_kurtosis <- function(ts){
   # If else clause to check the input
   if (is.ts(ts)) {
     return(kurtosis(ts, na.rm = FALSE, type = 3))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 }
 
@@ -51,7 +51,7 @@ calculate_kurtosis <- function(ts){
 #' @return The trend of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_trend(ts = tsobject)
+#' calculate_trend(ts = datasets::BJsales)
 #' @export
 calculate_trend <- function(ts){
   # If else clause to check the input
@@ -83,48 +83,9 @@ calculate_trend <- function(ts){
     }
     return(trend)
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
-}
-
-old_calculate_trend <- function(x){
-
-  # find out the frequency of the data
-  freq = get_ts_frequency(x)
-  #transform x into a ts
-  ts.x <- ts(x,f=freq)
-
-  # Decomposition
-  dc.x <- decompose_ts(x)
-
-  # Adjust data
-  if(freq > 1)
-    fits <- dc.x[["trend"]] + dc.x[["season"]]
-  else # Nonseasonal data
-    fits <- dc.x[["trend"]]
-  adj.x <- dc.x[["x"]] - fits + mean(dc.x[["trend"]], na.rm=TRUE)
-
-  # Backtransformation of adjusted data
-  if(dc.x[["transform"]])
-    tadj.x <- InvBoxCox(adj.x,dc.x[["lambda"]])
-  else
-    tadj.x <- adj.x
-
-  v.adj <- var(adj.x, na.rm=TRUE)
-  if(freq > 1)
-  {
-    detrend <- dc.x[["x"]] - dc.x[["trend"]]
-    deseason <- dc.x[["x"]] - dc.x[["season"]]
-    trend <- ifelse(var(deseason,na.rm=TRUE) < 1e-10, 0,
-                    max(0,min(1,1-v.adj/var(deseason,na.rm=TRUE))))
-  }
-  else #Nonseasonal data
-  {
-    trend <- ifelse(var(dc.x[["x"]],na.rm=TRUE) < 1e-10, 0,
-                    max(0,min(1,1-v.adj/var(dc.x[["x"]],na.rm=TRUE))))
-  }
-  return(trend)
 }
 
 #' Generates the mean of the autocorrelationfunction (ACF) of an ts object.
@@ -137,7 +98,7 @@ old_calculate_trend <- function(x){
 #' @return The mean of the ACF of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_autocorrelation(ts = tsobject)
+#' calculate_autocorrelation(ts = datasets::BJsales)
 #' @export
 calculate_autocorrelation <- function(ts){
   # If else clause to check the input
@@ -145,7 +106,7 @@ calculate_autocorrelation <- function(ts){
     acf = acf(ts, plot = FALSE)
     return(mean(acf$acf))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 }
 
@@ -159,7 +120,7 @@ calculate_autocorrelation <- function(ts){
 #' @return The normalized mean of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_mean(ts = tsobject)
+#' calculate_mean(ts = datasets::BJsales)
 #' @export
 calculate_mean <- function(ts){
   # If else clause to check the input
@@ -167,7 +128,7 @@ calculate_mean <- function(ts){
     x = (ts - min(ts)) / (max(ts) - min(ts))
     return(mean(x))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -182,14 +143,14 @@ calculate_mean <- function(ts){
 #' @return The standard deviation of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_sd(ts = tsobject)
+#' calculate_sd(ts = datasets::BJsales)
 #' @export
 calculate_sd <- function(ts){
   # If else clause to check the input
   if (is.ts(ts)) {
     return(sd(ts))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -204,14 +165,14 @@ calculate_sd <- function(ts){
 #' @return The number of observations of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_observationnumber(ts = tsobject)
+#' calculate_observationnumber(ts = datasets::BJsales)
 #' @export
 calculate_observationnumber <- function(ts){
   # If else clause to check the input
   if (is.ts(ts)) {
     return(length(as.numeric(ts)))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -227,7 +188,7 @@ calculate_observationnumber <- function(ts){
 #' @return The non linearity factor of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_non_linearity(ts = tsobject)
+#' calculate_non_linearity(ts = datasets::BJsales)
 #' @export
 calculate_non_linearity <- function(ts){
   # If else clause to check the input
@@ -236,7 +197,7 @@ calculate_non_linearity <- function(ts){
     p <- tseries::terasvirta.test(na.contiguous(ts))[["statistic"]]
     return(p)
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -251,7 +212,7 @@ calculate_non_linearity <- function(ts){
 #' @return The seasonality factor of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_seasonality(ts = tsobject)
+#' calculate_seasonality(ts = datasets::BJsales)
 #' @export
 calculate_seasonality <- function(ts){
   # If else clause to check the input
@@ -279,47 +240,9 @@ calculate_seasonality <- function(ts){
     }
     return(season)
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
-}
-
-
-old_Seasonality <- function(x){
-
-  # find out the frequency of the data
-  freq = get_ts_frequency(x)
-
-  # Decomposition
-  dc.x <- decompose_ts(x)
-
-  # Adjust data
-  if(freq > 1)
-    fits <- dc.x[["trend"]] + dc.x[["season"]]
-  else # Nonseasonal data
-    fits <- dc.x[["trend"]]
-  adj.x <- dc.x[["x"]] - fits + mean(dc.x[["trend"]], na.rm = TRUE)
-
-  # Backtransformation of adjusted data
-  if(dc.x[["transform"]])
-    tadj.x <- InvBoxCox(adj.x,dc.x[["lambda"]])
-  else
-    tadj.x <- adj.x
-
-  v.adj <- var(adj.x, na.rm=TRUE)
-  if(freq > 1)
-  {
-    detrend <- dc.x[["x"]] - dc.x[["trend"]]
-    deseason <- dc.x[["x"]] - dc.x[["season"]]
-    season <- ifelse(var(detrend,na.rm=TRUE) < 1e-10, 0,
-                     max(0,min(1,1-v.adj/var(detrend,na.rm=TRUE))))
-  }
-  else #Nonseasonal data
-  {
-    season <- 0
-
-  }
-  return(season)
 }
 
 #' Generates the periodicity/frequency factor of an ts object.
@@ -332,7 +255,7 @@ old_Seasonality <- function(x){
 #' @return The periodicity/frequency factor of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_periodicity(ts = tsobject)
+#' calculate_periodicity(ts = datasets::BJsales)
 #' @export
 calculate_periodicity <- function(ts){
   # If else clause to check the input
@@ -340,7 +263,7 @@ calculate_periodicity <- function(ts){
     freq <- get_ts_frequency(as.numeric(ts))
     return((exp((freq - 1) / 50) - 1) / (1 + exp((freq - 1) / 50)))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -355,7 +278,7 @@ calculate_periodicity <- function(ts){
 #' @return The maximum Lyapunov exponent (chaos)  of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_chaos(ts = tsobject)
+#' calculate_chaos(ts = datasets::BJsales)
 #' @export
 calculate_chaos <- function(ts){
   # If else clause to check the input
@@ -376,7 +299,7 @@ calculate_chaos <- function(ts){
     fLyap <- exp(Lyap) / (1 + exp(Lyap))
     return(fLyap)
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -391,7 +314,7 @@ calculate_chaos <- function(ts){
 #' @return The approximate entropy of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_entropy(ts = tsobject)
+#' calculate_entropy(ts = datasets::BJsales)
 #' @export
 calculate_entropy <- function(ts){
   # If else clause to check the input
@@ -399,7 +322,7 @@ calculate_entropy <- function(ts){
     # default settings: approx_entropy(ts, edim = 2, r = 0.2*sd(ts), elag = 1)
     return(approx_entropy(ts))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -414,7 +337,7 @@ calculate_entropy <- function(ts){
 #' @return The Hurst exponent of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_selfsimilarity(ts = tsobject)
+#' calculate_selfsimilarity(ts = datasets::BJsales)
 #' @export
 calculate_selfsimilarity <- function(ts){
   # If else clause to check the input
@@ -422,80 +345,10 @@ calculate_selfsimilarity <- function(ts){
     hurst_exponent <- fracdiff::fracdiff(na.contiguous(ts), 0, 0)[["d"]] + 0.5
     return(hurst_exponent)
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
-
-# as input the entire 1000 ts are required
-oldDTWdistance <- function(x,TSList){
-
-  # distance vector for TS x for all 10 blocks!
-  distanceVector = c()
-
-  #Transform TSList into 10 matrix blocks for distance measure
-  blockStart = 1
-  blockEnd = 0
-  blockSize = length(TSList)/10
-
-  # generate for each of the 10 blocks the DTW distance and store it
-  for(i in 1:10){
-    print(distanceVector)
-
-    blockEnd = blockEnd + blockSize
-    block = TSList[blockStart:blockEnd]
-
-    # generate the block matrix with all ts data as rows
-    blockMatrix = data.frame()
-    for(elem in block){
-      elem$data$date = NULL
-      #transform all cols into numeric values
-      for(col in 1:ncol(elem$data)){
-        if(!is.numeric(elem$data[,col]) || !is.integer(elem$data[,col])){
-          elem$data[,col] = as.factor(elem$data[,col])
-          elem$data[,col] = as.numeric(elem$data[,col])
-        }
-      }
-      tempDF <- transpose(elem$data)
-      #append the ts!
-      blockMatrix = plyr::rbind.fill(blockMatrix,tempDF)
-    }
-
-    blockMatrix = as.matrix.data.frame(blockMatrix)
-    # replace all NAs by 0
-    blockMatrix[is.na(blockMatrix)] <- 0
-
-    blockStart = blockStart + blockSize
-
-    # generate a matrix of TS x
-    tempDF = as.data.frame(x)
-    tempDF <- transpose(tempDF)
-    matrixX = as.matrix.data.frame(tempDF)
-
-    print("before dist func")
-    # get DTW distance matrix
-    alignment<-dtwDist(matrixX,  blockMatrix)
-
-    print("after dist func")
-    if(is.data.frame(x)){
-      if(ncol(x) > 1){
-        alignmentVector = c()
-        for(n in 1:ncol(alignment)){
-          alignmentVector= append(alignmentVector, mean(alignment[,n]))
-          DTW = sum(alignmentVector)
-        }
-      } else {DTW = sum(alignment)}
-    } else { DTW = sum(alignment)}
-
-    # DTW for x with the entire block
-    # append the block DTW distance to final vector
-    distanceVector = append(distanceVector,DTW)
-
-  }
-
-  return(distanceVector)
-}
-
 
 #' Generates the dynamic time warping (DTW) for an ts object to the 1000 ts
 #' from the list in /data.
@@ -511,12 +364,12 @@ oldDTWdistance <- function(x,TSList){
 #' block 1,..., the last number is the DTW to block 10. If the input is not
 #' a ts object, an error message is returned.
 #' @examples
-#' calculate_dtw_blockdistance(ts = tsobject)
+#' calculate_dtw_blockdistance(ts = datasets::BJsales)
 #' @export
 calculate_dtw_blockdistance <- function(ts){
   # If else clause to check the input
   if (is.ts(ts)) {
-    blocks <- matrix_block_list
+    blocks <- tstaxonomyr::matrix_block_list
     # Distance vector for containing dtw distance for ts to all blocks
     distance_vector <- c()
 
@@ -525,9 +378,8 @@ calculate_dtw_blockdistance <- function(ts){
     temp_df <- transpose(temp_df)
     matrix_ts <- as.matrix.data.frame(temp_df)
 
-    # Generate for each of the 10 blocks the DTW distance and store it
+    # Generate for each of the 13 blocks the DTW distance and store it
     for (elem in blocks) {
-      print(distance_vector)
       # Get the DTW distance matrix
       alignment<-dtwDist(matrix_ts, elem)
 
@@ -539,7 +391,7 @@ calculate_dtw_blockdistance <- function(ts){
     }
     return(distance_vector)
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -556,7 +408,7 @@ calculate_dtw_blockdistance <- function(ts){
 #' @return The percentage of turning points of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_turningpoint_percentage(ts = tsobject)
+#' calculate_turningpoint_percentage(ts = datasets::BJsales)
 #' @export
 calculate_turningpoint_percentage <- function(ts){
   # If else clause to check the input
@@ -574,7 +426,7 @@ calculate_turningpoint_percentage <- function(ts){
       return(sigTP / calculate_observationnumber(ts))
     }
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -590,7 +442,7 @@ calculate_turningpoint_percentage <- function(ts){
 #' @return The mean of the PACF of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_partial_autocorrelation(ts = tsobject)
+#' calculate_partial_autocorrelation(ts = datasets::BJsales)
 #' @export
 calculate_partial_autocorrelation <- function(ts){
   # If else clause to check the input
@@ -598,7 +450,7 @@ calculate_partial_autocorrelation <- function(ts){
     pacf <- pacf(ts, plot = FALSE)
     return(mean(pacf$acf))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -613,14 +465,14 @@ calculate_partial_autocorrelation <- function(ts){
 #' @return The variance of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_variance(ts = tsobject)
+#' calculate_variance(ts = datasets::BJsales)
 #' @export
 calculate_variance <- function(ts){
   # If else clause to check the input
   if (is.ts(ts)) {
     return(var(ts))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -639,7 +491,7 @@ calculate_variance <- function(ts){
 #' @return The percentage of outliers of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_outlier_percentage(ts = tsobject)
+#' calculate_outlier_percentage(ts = datasets::BJsales)
 #' @export
 calculate_outlier_percentage <- function(ts){
   # If else clause to check the input
@@ -657,7 +509,7 @@ calculate_outlier_percentage <- function(ts){
       return(outlier_mean / calculate_observationnumber(ts))
     }
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -672,7 +524,7 @@ calculate_outlier_percentage <- function(ts){
 #' @return The percentage of step changes of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_stepchange_percentage(ts = tsobject)
+#' calculate_stepchange_percentage(ts = datasets::BJsales)
 #' @export
 calculate_stepchange_percentage <- function(ts){
   # If else clause to check the input
@@ -691,7 +543,7 @@ calculate_stepchange_percentage <- function(ts){
     }
 
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -706,7 +558,7 @@ calculate_stepchange_percentage <- function(ts){
 #' @return The percentage of peaks of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_peak_percentage(ts = tsobject)
+#' calculate_peak_percentage(ts = datasets::BJsales)
 #' @export
 calculate_peak_percentage <- function(ts){
   # If else clause to check the input
@@ -719,7 +571,7 @@ calculate_peak_percentage <- function(ts){
       return(percentage_peaks)
     }
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -765,7 +617,7 @@ calculate_durbin_watson_test <- function(df, targetcol){
     }
     return(dw / length(dw_colnames))
   } else {
-    print("A data.frame object is required as input!")
+    stop("A data.frame object is required as input!")
   }
 
 }
@@ -780,7 +632,7 @@ calculate_durbin_watson_test <- function(df, targetcol){
 #' @return The percentage of the values in the 4 quartiles of \code{ts}.
 #' If the input is not a ts, an error message is returned.
 #' @examples
-#' calculate_quartile_distribution(ts = tsobject)
+#' calculate_quartile_distribution(ts = datasets::BJsales)
 #' @export
 calculate_quartile_distribution <- function(ts){
   # If else clause to check the input
@@ -798,7 +650,7 @@ calculate_quartile_distribution <- function(ts){
                            sum(abs(ts[((quartiles * 3) + 1):observations])))
     return(distribution / sum(abs(ts)))
   } else {
-    print("A time series object is required as input!")
+    stop("A time series object is required as input!")
   }
 
 }
@@ -831,7 +683,7 @@ calculate_determination_coefficient <- function(df, targetcol){
     }
     return(R2)
   } else {
-    print("A data.frame object is required as input!")
+    stop("A data.frame object is required as input!")
   }
 
 
@@ -861,7 +713,7 @@ calculate_attributenumber <- function(df){
       return(ncol(df))
     }
   } else {
-    print("A data.frame object is required as input!")
+    stop("A data.frame object is required as input!")
   }
 
 }

@@ -67,7 +67,7 @@ decompose_ts <- function(ts, transform = TRUE){
   # If else clause to check the input
   if (is.ts(ts)) {
     # Transform ts
-    if (transform & a(ts, na.rm = TRUE) >= 0) {
+    if (transform & min(ts, na.rm = TRUE) >= 0) {
       lambda <- BoxCox.lambda(na.contiguous(ts))
       ts <- BoxCox(ts, lambda)
     } else {

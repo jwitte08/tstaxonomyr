@@ -23,38 +23,43 @@
 #'
 #' @param ts Either a vector, time series or data.frame object representing
 #' a time series is allowed.
-#' @param na_option A string value containing either 'mean', 'random',
-#' or'median'; Standard values is 'random'.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'kalman'.
 #' @return The final list, containing all scaled feature factor values.
 #' If the input \code{ts} is not a vector, ts or data.frame object
 #' an error message is returned.
 #' @examples
 #' ts_vector = c(1,4,6,1,24,5,1)
 #' classify_ts(ts = ts_vector_object)
-#' classify_ts(ts = ts_vector_object, na_option = "random")
+#' classify_ts(ts = ts_vector_object, na_option = "kalman")
 #' classify_ts(ts = dataframe_object, na_option = "mean")
-#' classify_ts(ts = ts_object, na_option = "median")
+#' classify_ts(ts = datasets::BJsales, na_option = "kalman")
 #' @export
-classify_ts <- function(ts, na_option = "random"){
+classify_ts <- function(ts, na_option = "kalman"){
 
   # Check input data and transform it into ts object ---------------------------
 
+  list_ts <- list()
   # If else clause to check the 'ts' input parameter
   if (is.ts(ts)) {
   # If ts is a ts object, add it to the list_ts list
-    list_ts <- c(ts)
+    list_ts[["ts"]] <- ts
   } else if (is.vector(ts)) {
   # If ts is a vector object, transfrom it to ts & add it to the list_ts list
+    # character and factor cols are transformed to numeric cols
+    if (is.character(ts) || is.factor(ts)) {
+      ts = as.factor(ts)
+      ts = as.numeric(ts)
+    }
     # Find out the frequency of the data
     freq <- get_ts_frequency(ts)
     # Transform ts into a ts
     ts <- ts(ts, f = freq)
-    list_ts <- c(ts)
+    list_ts[["ts"]] <- ts
   } else if (is.data.frame(ts)) {
   # If ts is a data.frane object, transfrom each data col to a ts object
   # and add each ts object to the list_ts list
     if (ncol(ts) > 1){
-      list_ts <- list()
       for (col in 1:ncol(ts)) {
         # The date col is cutted out
         if ((!is.Date(ts[,col]) || !is.POSIXt(ts[,col])) &
@@ -77,16 +82,16 @@ classify_ts <- function(ts, na_option = "random"){
       freq = get_ts_frequency(ts)
       # Transform ts into a time series
       ts <- ts(ts, f = freq)
-      list_ts = c(ts)
+      list_ts[["ts"]] <- ts
     }
   } else {
     # if the input data has a wrong class, print a error message
-    print("ERROR: input parameter 'ts' has to be of class
+    stop("ERROR: input parameter 'ts' has to be of class
               vector, ts or data.frame")
   }
 
   # If else clause to check the 'na_option' input parameter
-    if (na_option == "median") {
+    if (na_option == "mean") {
       count_list_ts <- 1
       for (elem in list_ts) {
         if (length(na.omit(as.numeric(elem))) != length(elem)) {
@@ -96,31 +101,29 @@ classify_ts <- function(ts, na_option = "random"){
           count_list_ts <- count_list_ts + 1
         }
       }
-    } else if (na_option == "mean") {
+    } else if (na_option == "kalman") {
       count_list_ts <- 1
       for(elem in list_ts){
-        if (length(na.omit(as.numeric(elem))) != length(elem)) {
-          # Replace all NA by median
-          adjusted_ts <- na.mean(elem, option = "median")
-          list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
-          count_list_ts <- count_list_ts + 1
-        }
-      }
-    } else if (na_option == "random") {
-      count_list_ts <- 1
-      for(elem in list_ts){
-        if (length(na.omit(as.numeric(elem))) != length(elem)) {
-          # Replace all NA by median
-          adjusted_ts <- na.random(elem)
-          list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
-          count_list_ts <- count_list_ts + 1
+        if (length(na.omit(as.numeric(elem))) != (length(elem))) {
+          if ((length(elem) - length(na.omit(as.numeric(elem)))) >= 3){
+            # Replace all NA by kalman
+            adjusted_ts <- na.kalman(elem)
+            list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
+            count_list_ts <- count_list_ts + 1
+          } else {
+            print("For kalman imputation are at least 3 NA observations
+                  + required, thus the simple 'mean' imputation is used")
+            # Replace all NA by mean
+            adjusted_ts <- na.mean(elem, option = "mean")
+            list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
+            count_list_ts <- count_list_ts + 1
+          }
         }
       }
     } else {
-      print("ERROR: input parameter 'na_option' has to contain either
-          'mean' or 'median'")
+      stop("ERROR: input parameter 'na_option' has to contain either
+           'mean' or 'kalman'")
     }
-
 
   # Generate the feature values and scale [0,1] them ---------------------------
 
@@ -237,7 +240,7 @@ classify_ts <- function(ts, na_option = "random"){
     temp_vector <- append(temp_vector, feature_selfsimilarity)
 
     # Feature dtw
-    feature_dtw <- calculate_dtw_blockdistance(elem) #
+    feature_dtw <- calculate_dtw_blockdistance(elem)
     # Scaling
     #tmp_feature_dtw <- c()
     #for(d in feature_dtw){
@@ -253,8 +256,6 @@ classify_ts <- function(ts, na_option = "random"){
     #feature_tp <- scale_feature(feature_tp,a,b,type)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_tp)
-
-    print(feature_tp) #####
 
     # Feature variance
     feature_variance <- calculate_variance(elem)
@@ -386,9 +387,6 @@ classify_ts <- function(ts, na_option = "random"){
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_non_linearity)
 
-    print(temp_vector) #########
-
-
     # Add the feature vector to the appropriate row of the temp_taxonomy matrix
     temp_taxonomy[ts_count,] <- temp_vector
     ts_count <- ts_count + 1
@@ -408,8 +406,6 @@ classify_ts <- function(ts, na_option = "random"){
 
   # Based on the defined ts taxonomy intervals
   # assign to the feature values from ts_taxonomy factor values --------------
-
-  print(ts_taxonomy) ########
 
   # final list with all taxonomy values (factor values)
   ts_taxonomy_list <- list()
@@ -992,6 +988,6 @@ classify_ts <- function(ts, na_option = "random"){
   }
 
   # Return final list with all feature factors
-  return(ts_taxonomy_list)
+  return(ts_taxonomy)
 
 }
