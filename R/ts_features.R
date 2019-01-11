@@ -1,7 +1,7 @@
 
-#' Generates the skewness of an ts object.
+#' Generates the skewness of a ts object.
 #'
-#' This is a function to generate the skewness of an time series object.
+#' This is a function to generate the skewness of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -20,9 +20,9 @@ calculate_skewness <- function(ts){
   }
 }
 
-#' Generates the kurtosis of an ts object.
+#' Generates the kurtosis of a ts object.
 #'
-#' This is a function to generate the kurtosis of an time series object.
+#' This is a function to generate the kurtosis of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -41,9 +41,9 @@ calculate_kurtosis <- function(ts){
   }
 }
 
-#' Generates the trend of an ts object.
+#' Generates the trend of a ts object.
 #'
-#' This is a function to generate the trend of an time series object.
+#' This is a function to generate the trend of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -61,7 +61,7 @@ calculate_trend <- function(ts){
     decomposed_ts <- decompose_ts(ts)
 
     # Adjust the data
-    if (freq > 1) {
+    if (freq > 1 & !is.null(decomposed_ts[["season"]])) {
       fits <- decomposed_ts[["trend"]] + decomposed_ts[["season"]]
     } else { # Nonseasonal data
       fits <- decomposed_ts[["trend"]]
@@ -71,7 +71,7 @@ calculate_trend <- function(ts){
 
     variance_adj_ts <- var(adjusted_ts, na.rm = TRUE)
 
-    if (freq > 1) {  # If seasonal data
+    if (freq > 1 & !is.null(decomposed_ts[["season"]])) {  # If seasonal data
       deseason <- decomposed_ts[["ts"]] - decomposed_ts[["season"]]
       trend <- ifelse (var(deseason, na.rm = TRUE) < 1e-10, 0,
                        max(0, min(1, 1 - variance_adj_ts /
@@ -88,9 +88,9 @@ calculate_trend <- function(ts){
 
 }
 
-#' Generates the mean of the autocorrelationfunction (ACF) of an ts object.
+#' Generates the mean of the autocorrelationfunction (ACF) of a ts object.
 #'
-#' This is a function to generate the mean of the ACF of an time series object.
+#' This is a function to generate the mean of the ACF of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -110,10 +110,10 @@ calculate_autocorrelation <- function(ts){
   }
 }
 
-#' Generates the mean of the normalized values [0,1] of an ts object.
+#' Generates the mean of the normalized values [0,1] of a ts object.
 #'
 #' This is a function to generate the mean of the normalized values [0,1]
-#' of an time series object. As input is only required an object from
+#' of a time series object. As input is only required an object from
 #' the class time series. Otherwise the function returns an error message.
 #'
 #' @param ts A time series object.
@@ -133,9 +133,9 @@ calculate_mean <- function(ts){
 
 }
 
-#' Generates the standard deviation of an ts object.
+#' Generates the standard deviation of a ts object.
 #'
-#' This function generates the standard deviation of an time series object.
+#' This function generates the standard deviation of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -155,7 +155,7 @@ calculate_sd <- function(ts){
 
 }
 
-#' Generates the number of observations of an ts object.
+#' Generates the number of observations of a ts object.
 #'
 #' This is a function to generate the number of observations of an
 #' time series object. As input is only required an object from the
@@ -177,9 +177,9 @@ calculate_observationnumber <- function(ts){
 
 }
 
-#' Generates the non linearity factor of an ts object.
+#' Generates the non linearity factor of a ts object.
 #'
-#' This function generates the non linearity factor of an time series object.
+#' This function generates the non linearity factor of a time series object.
 #' The Teraesvirta's neural network test for neglected nonlinearity is applied.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
@@ -202,9 +202,9 @@ calculate_non_linearity <- function(ts){
 
 }
 
-#' Generates the seasonality factor of an ts object.
+#' Generates the seasonality factor of a ts object.
 #'
-#' This function generates the seasonality factor of an time series object.
+#' This function generates the seasonality factor of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -222,7 +222,7 @@ calculate_seasonality <- function(ts){
     decomposed_ts <- decompose_ts(ts)
 
     # Adjust data
-    if (freq > 1) {
+    if (freq > 1 & !is.null(decomposed_ts[["season"]])) {
       fits <- decomposed_ts[["trend"]] + decomposed_ts[["season"]]
     } else { # Nonseasonal data
       fits <- decomposed_ts[["trend"]]
@@ -231,7 +231,7 @@ calculate_seasonality <- function(ts){
 
     variance_adj_ts <- var(adjusted_ts, na.rm=TRUE)
 
-    if (freq > 1) {
+    if (freq > 1 & !is.null(decomposed_ts[["season"]])) {
       detrend <- decomposed_ts[["ts"]] - decomposed_ts[["trend"]]
       season <- ifelse (var(detrend, na.rm = TRUE) < 1e-10, 0,
                        max(0, min(1, 1 - variance_adj_ts / var(detrend, na.rm=TRUE))))
@@ -245,7 +245,7 @@ calculate_seasonality <- function(ts){
 
 }
 
-#' Generates the periodicity/frequency factor of an ts object.
+#' Generates the periodicity/frequency factor of a ts object.
 #'
 #' This function generates the periodicity/frequency factor of an
 #' time series object. As input is only required an object from the
@@ -268,10 +268,10 @@ calculate_periodicity <- function(ts){
 
 }
 
-#' Generates the maximum Lyapunov exponent (chaos) of an ts object.
+#' Generates the maximum Lyapunov exponent (chaos) of a ts object.
 #'
 #' This is a function to generate the maximum Lyapunov exponent (chaos)
-#' of an time series object. As input is only required an object from the
+#' of a time series object. As input is only required an object from the
 #' class time series. Otherwise the function returns an error message.
 #'
 #' @param ts A time series object.
@@ -286,27 +286,31 @@ calculate_chaos <- function(ts){
     length <- calculate_observationnumber(ts)
     freq <- get_ts_frequency(as.numeric(ts))
 
-    # if(freq > length - 10) stop("Insufficient data")
-    Ly <- numeric(length - freq)
-    for (i in 1:(length - freq)) {
-      idx <- order(abs(ts[i] - ts))
-      idx <- idx[idx < (length - freq)]
-      j <- idx[2]
-      Ly[i] <- log(abs((ts[i + freq] - ts[j + freq]) / (ts[i] - ts[j]))) / freq
-      if(is.na(Ly[i]) | Ly[i] == Inf | Ly[i] == -Inf) Ly[i] <- NA
+    if (freq > length - 10) {
+      return(as.numeric(0)) # Insufficient ts data
+    } else {
+      Ly <- numeric(length - freq)
+      for (i in 1:(length - freq)) {
+        idx <- order(abs(ts[i] - ts))
+        idx <- idx[idx < (length - freq)]
+        j <- idx[2]
+        Ly[i] <- log(abs((ts[i + freq] - ts[j + freq]) /
+                           (ts[i] - ts[j]))) / freq
+        if(is.na(Ly[i]) | Ly[i] == Inf | Ly[i] == -Inf) Ly[i] <- NA
+      }
+      Lyap <- mean(Ly, na.rm=TRUE)
+      fLyap <- exp(Lyap) / (1 + exp(Lyap))
+      return(fLyap)
     }
-    Lyap <- mean(Ly, na.rm=TRUE)
-    fLyap <- exp(Lyap) / (1 + exp(Lyap))
-    return(fLyap)
   } else {
     stop("A time series object is required as input!")
   }
 
 }
 
-#' Generates the approximate entropy of an ts object.
+#' Generates the approximate entropy of a ts object.
 #'
-#' This function generates the approximate entropy of an time series object.
+#' This function generates the approximate entropy of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -327,10 +331,10 @@ calculate_entropy <- function(ts){
 
 }
 
-#' Generates the Hurst exponent of an ts object.
+#' Generates the Hurst exponent of a ts object.
 #'
 #' This is a function to measure the self similarity by the Hurst exponent
-#' of an time series object. As input is only required an object from the
+#' of a time series object. As input is only required an object from the
 #' class time series. Otherwise the function returns an error message.
 #'
 #' @param ts A time series object.
@@ -350,18 +354,18 @@ calculate_selfsimilarity <- function(ts){
 
 }
 
-#' Generates the dynamic time warping (DTW) for an ts object to the 1000 ts
+#' Generates the dynamic time warping (DTW) for a ts object to the 1000 ts
 #' from the list in /data.
 #'
-#' This is a function to generate the DTW for a ts to the 10 blocks from the
-#' 1000 ts in the list in /data. Each block contains 100 ts. As input is only
+#' This is a function to generate the DTW for a ts to the 13 blocks from the
+#' 1000 ts in the un_ts_list and multi_ts_list in /data. Each block contains 100 ts. As input is only
 #' required an object from the class time series. Otherwise the function
 #' returns an error message.
 #'
 #' @param ts A time series object.
-#' @return The DTW of \code{ts} to the 10 different blocks. Thus an vector
-#' with 10 DTW distances is returned. The first number is the DTW to
-#' block 1,..., the last number is the DTW to block 10. If the input is not
+#' @return The DTW of \code{ts} to the 13 different blocks. Thus an vector
+#' with 13 DTW distances is returned. The first number is the DTW to
+#' block 1,..., the last number is the DTW to block 13. If the input is not
 #' a ts object, an error message is returned.
 #' @examples
 #' calculate_dtw_blockdistance(ts = datasets::BJsales)
@@ -373,7 +377,7 @@ calculate_dtw_blockdistance <- function(ts){
     # Distance vector for containing dtw distance for ts to all blocks
     distance_vector <- c()
 
-    # Generate a transposed matrix of ts
+    # Generate a transposed matrix of ts, a row contains a ts object
     temp_df <- as.data.frame(as.numeric(ts))
     temp_df <- transpose(temp_df)
     matrix_ts <- as.matrix.data.frame(temp_df)
@@ -396,10 +400,10 @@ calculate_dtw_blockdistance <- function(ts){
 
 }
 
-#' Generates the percentage of turning points of an ts object.
+#' Generates the percentage of turning points of a ts object.
 #'
 #' This is a function to generate the percentage of turning points of
-#' an time series object. Points are significant turning points if there
+#' a time series object. Points are significant turning points if their
 #' probability is smaller the significance level 5%.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
@@ -415,11 +419,17 @@ calculate_turningpoint_percentage <- function(ts){
   if (is.ts(ts)) {
     # Create turningpoint object
     tp <- turnpoints(ts)
-    # Get all turning points
-    allTP <- summary(tp)
-    # Indicate which turnpoints are significant with sign level (5%)
-    # Get the number of significant tp
-    sigTP <- sum(allTP$proba < 0.05)
+    # if number of tp is 0, return directly 0
+    if (tp$nturns > 0) {
+      # Get all turning points
+      allTP <- summary(tp)
+      # Indicate which turnpoints are significant with sign level (5%)
+      # Get the number of significant tp
+      sigTP <- sum(allTP$proba < 0.05)
+    } else {
+      return(0)
+    }
+    # if number of significant tp is 0, return directly 0
     if (length(sigTP) == 0){
       return(0)
     } else {
@@ -432,9 +442,9 @@ calculate_turningpoint_percentage <- function(ts){
 }
 
 #' Generates the mean of the partial autocorrelationfunction (PACF)
-#' of an ts object.
+#' of a ts object.
 #'
-#' This is a function to generate the mean of the PACF of an time series object.
+#' This is a function to generate the mean of the PACF of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -455,9 +465,9 @@ calculate_partial_autocorrelation <- function(ts){
 
 }
 
-#' Generates the variance of an ts object.
+#' Generates the variance of a ts object.
 #'
-#' This is a function to generate the variance of an time series object.
+#' This is a function to generate the variance of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -477,7 +487,7 @@ calculate_variance <- function(ts){
 
 }
 
-#' Generates the percentage of outliers of an ts object.
+#' Generates the percentage of outliers of a ts object.
 #'
 #' This is a function to generate the percentage of outliers of an
 #' time series object. Points are significant outliers if there probability is
@@ -514,10 +524,10 @@ calculate_outlier_percentage <- function(ts){
 
 }
 
-#' Generates the percentage of step changes of an ts object.
+#' Generates the percentage of step changes of a ts object.
 #'
 #' This is a function to generate the percentage of step changes of
-#' an time series object. As input is only required an object from the class
+#' a time series object. As input is only required an object from the class
 #' time series. Otherwise the function returns an error message.
 #'
 #' @param ts A time series object.
@@ -548,9 +558,9 @@ calculate_stepchange_percentage <- function(ts){
 
 }
 
-#' Generates the percentage of peaks of an ts object.
+#' Generates the percentage of peaks of a ts object.
 #'
-#' This function generates the percentage of peaks of an time series object.
+#' This function generates the percentage of peaks of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
 #'
@@ -576,20 +586,22 @@ calculate_peak_percentage <- function(ts){
 
 }
 
-#' Generates the autocorrelation measure of an data.frame object.
+#' Generates the autocorrelation measure of a data.frame object.
 #'
-#' This function generates the autocorrelation measure of an data.frame object.
+#' This function generates the autocorrelation measure of a data.frame object.
 #' It is based on the durbin watson test. The test is based on detrended data.
 #' The data.frame object should represent an multivariate ts. As input is
 #' only required an object from the class data.frame.
 #' Otherwise the function returns an error message.
 #'
 #' @param df A data.frame object.
-#' @param targetcol A string containing a column name of the \code{df}.
+#' @param targetcol A character containing a column name of the \code{df}.
 #' @return The autocorrelation measure of \code{df}.
 #' If the input is not a data.frame, an error message is returned.
 #' @examples
-#' calculate_durbin_watson_test(df = dataframe_object,targetcol = 'var1')
+#' calculate_determination_coefficient(
+#' df = multi_ts_list$`M-TS-1`$data,
+#' targetcol = colnames(multi_ts_list$`M-TS-1`$data)[1])
 #' @export
 calculate_durbin_watson_test <- function(df, targetcol){
   # If else clause to check the input
@@ -622,10 +634,10 @@ calculate_durbin_watson_test <- function(df, targetcol){
 
 }
 
-#' Generates the percentage of the values in the 4 quartiles of an ts object.
+#' Generates the percentage of the values in the 4 quartiles of a ts object.
 #'
 #' This is a function to generate the percentage of the values in the 4
-#' quartiles of an time series object. As input is only required an object from
+#' quartiles of a time series object. As input is only required an object from
 #' the class time series. Otherwise the function returns an error message.
 #'
 #' @param ts A time series object.
@@ -655,19 +667,21 @@ calculate_quartile_distribution <- function(ts){
 
 }
 
-#' Generates the coefficient of determination (R2) of an data.frame object.
+#' Generates the coefficient of determination (R2) of a data.frame object.
 #'
-#' This is a function to generate the R2 of an data.frame object.
+#' This is a function to generate the R2 of a data.frame object.
 #' As input is only required an object from the class data.frame.
 #' The data.frame object should represent an multivariate ts.
 #' Otherwise the function returns an error message.
 #'
 #' @param df A data.frame object.
-#' @param targetcol A string containing a column name of the \code{df}.
+#' @param targetcol A character containing a column name of the \code{df}.
 #' @return The R2 of \code{df}.
 #' If the input is not a data.frame, an error message is returned.
 #' @examples
-#' calculate_determination_coefficient(df = dataframe_object,targetcol = 'var1')
+#' calculate_determination_coefficient(
+#' df = multi_ts_list$`M-TS-1`$data,
+#' targetcol = colnames(multi_ts_list$`M-TS-1`$data)[1])
 #' @export
 calculate_determination_coefficient <- function(df, targetcol){
   # If else clause to check the input
@@ -689,9 +703,9 @@ calculate_determination_coefficient <- function(df, targetcol){
 
 }
 
-#' Generates the number of attributes of an data.frame object.
+#' Generates the number of attributes of a data.frame object.
 #'
-#' This function generates the number of attributes of an data.frame object.
+#' This function generates the number of attributes of a data.frame object.
 #' As input is only required an object from the class data.frame.
 #' The data.frame object should represent an multivariate ts.
 #' Otherwise the function returns an error message.
@@ -700,7 +714,7 @@ calculate_determination_coefficient <- function(df, targetcol){
 #' @return The number of attributes of \code{df}.
 #' If the input is not a data.frame, an error message is returned.
 #' @examples
-#' calculate_attributenumber(df = dataframe_object)
+#' calculate_attributenumber(df = multi_ts_list$`M-TS-1`$data)
 #' @export
 calculate_attributenumber <- function(df){
   # If else clause to check the input

@@ -7,10 +7,10 @@
 #' As input for \code{ts} is only required an object from the classes
 #' time series, data.frame or vector. Each of them should represent an
 #' time series. Otherwise the function returns an error message. Also, for
-#' \code{na_option} is only required the string 'mean', 'median' or 'random'
+#' \code{na_option} is only required the string 'mean' or'kalman'
 #' allowed. This means, that all na values are either replaced by the mean,
-#' median or a random number between the min and max of the ts.
-#' The standard value of \code{na_option} is 'random'. The following 24
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'kalman'. The following 24
 #' features: "number_of_observations", "number_of_attributes",
 #' "coefficient of determination", "durbin watson test", "mean", "periodicity",
 #' "chaos", "entropy", "selfsimilarity", "dynamic time warping (DTW) distance ",
@@ -30,10 +30,11 @@
 #' an error message is returned.
 #' @examples
 #' ts_vector = c(1,4,6,1,24,5,1)
+#' df = multi_ts_list$`M-TS-1`$data
+#' ts = datasets::BJsales
 #' classify_ts(ts = ts_vector_object)
-#' classify_ts(ts = ts_vector_object, na_option = "kalman")
-#' classify_ts(ts = dataframe_object, na_option = "mean")
-#' classify_ts(ts = datasets::BJsales, na_option = "kalman")
+#' classify_ts(ts = df, na_option = "kalman")
+#' classify_ts(ts = ts, na_option = "mean")
 #' @export
 classify_ts <- function(ts, na_option = "kalman"){
 
@@ -218,6 +219,8 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_periodicity)
 
+    print(feature_periodicity)
+
     # Feature chaos
     feature_chaos <- calculate_chaos(elem)
     # Scaling
@@ -303,12 +306,17 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_sd)
 
+    print("sd")
+
     # Feature peaks
     feature_peak <- calculate_peak_percentage(detrended_ts)
     # Scaling
     #feature_peak <- scale_feature(feature_peak,a,b,type)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_peak)
+
+    print("peaks")
+
 
     # The next features are generated on detrended_and_deseason_ts data
     # but they require a ts object and transfrom it within the fucntion ------
@@ -319,6 +327,8 @@ classify_ts <- function(ts, na_option = "kalman"){
     #feature_trend <- scale_feature(feature_trend,a,b,type)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_trend)
+
+
 
     # Feature seasonality
     feature_season <- calculate_seasonality(elem)
@@ -355,6 +365,9 @@ classify_ts <- function(ts, na_option = "kalman"){
     #feature_partial_autocor <- scale_feature(feature_partial_autocor/3,a,b,type)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_partial_autocor)
+
+    print("autocorrelation")
+
 
     # Feature skewness
     feature_skewness <- 0

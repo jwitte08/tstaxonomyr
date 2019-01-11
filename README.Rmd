@@ -27,12 +27,23 @@ for it own.
 ## Usage
 
 ```{r usage, eval = FALSE}
+# Initialize the R package
 library(tstaxonomyr)
+
+# Example of the TS taxonomy classification --------
 # Use the univariate time series object 'BJsales'
 ts_sales = datasets::BJsales
-# Classify the time series based on the defined taxonomy in 'classify_ts'
+# Classify the time series based on the defined taxonomy 
+# in 'classify_ts'
 classified_ts <- classify_ts(ts = ts_sales, na_option = "mean")
+# Get the classification factor results
 classified_ts
+
+# Example of a single feature value calculation --------
+# Calculate the skewness of a time series object
+skewness = calculate_skewness(ts = ts_sales)
+# Get the resulting skewness factor
+skewness
 ```
 
 ## Installation

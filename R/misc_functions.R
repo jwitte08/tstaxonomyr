@@ -76,7 +76,7 @@ decompose_ts <- function(ts, transform = TRUE){
     }
 
     # If seasonal data
-    if(frequency(ts) > 1)
+    if(stats::frequency(as.numeric(ts)) > 1)
     {
       ts_stl <- stl(ts, s.window = "periodic", na.action = na.contiguous)
       trend <- ts_stl[["time.series"]][,2]
