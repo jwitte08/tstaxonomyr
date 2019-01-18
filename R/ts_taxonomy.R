@@ -45,12 +45,16 @@ classify_ts <- function(ts, na_option = "kalman"){
   if (is.ts(ts)) {
   # If ts is a ts object, add it to the list_ts list
     list_ts[["ts"]] <- ts
+    quartile_index <- c(1)
+
   } else if (is.vector(ts)) {
   # If ts is a vector object, transfrom it to ts & add it to the list_ts list
     # character and factor cols are transformed to numeric cols
     if (is.character(ts) || is.factor(ts)) {
       ts = as.factor(ts)
       ts = as.numeric(ts)
+    } else {
+      quartile_index <- c(1)
     }
     # Find out the frequency of the data
     freq <- get_ts_frequency(ts)
@@ -60,30 +64,27 @@ classify_ts <- function(ts, na_option = "kalman"){
   } else if (is.data.frame(ts)) {
   # If ts is a data.frane object, transfrom each data col to a ts object
   # and add each ts object to the list_ts list
-    if (ncol(ts) > 1){
-      for (col in 1:ncol(ts)) {
-        # The date col is cutted out
-        if ((!is.Date(ts[,col]) || !is.POSIXt(ts[,col])) &
-            length(unique(ts[,col])) > 1 & !str_detect(colnames(ts)[col],
-                                        regex("date", ignore_case = TRUE))) {
-          # character and factor cols are transformed to numeric cols
-          if (is.character(ts[,col]) || is.factor(ts[,col])) {
-            ts[,col] = as.factor(ts[,col])
-            ts[,col] = as.numeric(ts[,col])
-          }
-          # Find out the frequency of the data
-          freq <- get_ts_frequency(ts[,col])
-          # Transform tsinto a ts object
-          transform_ts <- ts(ts[,col], f = freq)
-          list_ts[[as.character(col)]] = transform_ts
+    quartile_index_count <- 1
+    quartile_index <- c()
+    for (col in 1:ncol(ts)) {
+      # The date col is cutted out
+      if ((!is.Date(ts[,col]) || !is.POSIXt(ts[,col])) &
+          length(unique(na.omit(ts[,col]))) > 1 & !str_detect(colnames(ts)[col],
+                                      regex("date", ignore_case = TRUE))) {
+        # character and factor cols are transformed to numeric cols
+        if (is.character(ts[,col]) || is.factor(ts[,col])) {
+          ts[,col] = as.factor(ts[,col])
+          ts[,col] = as.numeric(ts[,col])
+        } else {
+          quartile_index <- append(quartile_index, quartile_index_count)
+          quartile_index_count <- quartile_index_count + 1
         }
+        # Find out the frequency of the data
+        freq <- get_ts_frequency(ts[,col])
+        # Transform tsinto a ts object
+        transform_ts <- ts(ts[,col], f = freq)
+        list_ts[[as.character(col)]] = transform_ts
       }
-    } else {
-      # Find out the frequency of the data
-      freq = get_ts_frequency(ts)
-      # Transform ts into a time series
-      ts <- ts(ts, f = freq)
-      list_ts[["ts"]] <- ts
     }
   } else {
     # if the input data has a wrong class, print a error message
@@ -99,8 +100,8 @@ classify_ts <- function(ts, na_option = "kalman"){
           # Replace all NA by mean
           adjusted_ts <- na.mean(elem, option = "mean")
           list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
-          count_list_ts <- count_list_ts + 1
         }
+        count_list_ts <- count_list_ts + 1
       }
     } else if (na_option == "kalman") {
       count_list_ts <- 1
@@ -110,20 +111,29 @@ classify_ts <- function(ts, na_option = "kalman"){
             # Replace all NA by kalman
             adjusted_ts <- na.kalman(elem)
             list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
-            count_list_ts <- count_list_ts + 1
           } else {
             print("For kalman imputation are at least 3 NA observations
                   + required, thus the simple 'mean' imputation is used")
             # Replace all NA by mean
             adjusted_ts <- na.mean(elem, option = "mean")
             list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
-            count_list_ts <- count_list_ts + 1
           }
         }
+        count_list_ts <- count_list_ts + 1
       }
     } else {
       stop("ERROR: input parameter 'na_option' has to contain either
            'mean' or 'kalman'")
+    }
+
+    for (elem in list_ts) {
+      if (length(elem) < 10) {
+        stop("ERROR: the inputed ts has to have a length at least of 10")
+      }
+    }
+
+    if(length(list_ts) == 0) {
+      stop("ERROR: the ts data is not useful, bad structure and types")
     }
 
   # Generate the feature values and scale [0,1] them ---------------------------
@@ -135,7 +145,8 @@ classify_ts <- function(ts, na_option = "kalman"){
   number_of_observations <-
     calculate_observationnumber(list_ts[[names(list_ts)[1]]])
   # Scaling
-  #number_of_observations <- scale_feature(number_of_observations,a,b,type)
+  number_of_observations <- scale_feature(x = number_of_observations
+                                          , min = 13, max = 1048575)
   # Add scaled result to the ts_vector
   ts_vector <- append(ts_vector, number_of_observations)
 
@@ -154,6 +165,8 @@ classify_ts <- function(ts, na_option = "kalman"){
     r2 <-
       calculate_determination_coefficient(df = as.data.frame(list_ts),
                                           targetcol = ts_colnames[1])
+    # Scaling
+    r2 <- scale_feature(x = r2, min = 0, max = 1)
   } else {
     r2 <- -1
   }
@@ -208,14 +221,14 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Feature mean
     feature_mean <- calculate_mean(elem)
     # Scaling
-    #feature_mean <- scale_feature(feature_mean,a,b,type)
+    feature_mean <- scale_feature(feature_mean, min = 0.08, max = 0.81)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_mean)
 
     # Feature periodicity
     feature_periodicity <- calculate_periodicity(elem)
     # Scaling
-    #feature_periodicity <- scale_feature(feature_periodicity,a,b,type)
+    feature_periodicity <- scale_feature(feature_periodicity, min = 0, max = 1)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_periodicity)
 
@@ -224,71 +237,96 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Feature chaos
     feature_chaos <- calculate_chaos(elem)
     # Scaling
-    #feature_chaos <- scale_feature(feature_chaos,a,b,type)
+    feature_chaos <- scale_feature(feature_chaos, min = 0, max = 1)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_chaos)
 
     # Feature entropy
     feature_entropy <- calculate_entropy(elem)
     # Scaling
-    #feature_entropy <- scale_feature(feature_entropy,a,b,type)
+    feature_entropy <- scale_feature(feature_entropy, min = -0.08, max = 1.13)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_entropy)
 
     # Feature self-similarity
     feature_selfsimilarity <- calculate_selfsimilarity(elem)
     # Scaling
-    #feature_selfsimilarity <- scale_feature(feature_selfsimilarity,a,b,type)
+    feature_selfsimilarity <- scale_feature(feature_selfsimilarity
+                                            , min = 0.5, max = 1)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_selfsimilarity)
 
     # Feature dtw
     feature_dtw <- calculate_dtw_blockdistance(elem)
     # Scaling
-    #tmp_feature_dtw <- c()
-    #for(d in feature_dtw){
-    #  tmpfeature_dtw <- append(tmp_feature_dtw,scale_feature(d,a,b,type))
-    #}
-    #feature_dtw <- tmp_feature_dtw
+    tmp_feature_dtw <- c()
+    tmp_min = c(3.193370e+05, 7.463153e+06, 7.644194e+08, 1.150776e+07,
+                1.108854e+07, 5.563533e+06, 3.239978e+07, 1.930227e+07,
+                2.565264e+07, 2.743419e+07, 5.476233e+05, 8.36043e+11,
+                4.120751e+07)
+    tmp_max = c(2.667504e+11, 2.086075e+11, 2.313187e+12, 3.307952e+11
+                , 2.037851e+11, 1.425399e+11, 2.037255e+11, 1.944826e+11
+                , 1.944998e+11, 1.093261e+12, 1.077044e+12,  3.479975e+12
+                , 4.254808e+12)
+    for(i in 1:13){
+      tmp_feature_dtw <- append(tmp_feature_dtw,scale_feature(feature_dtw[i]
+                                        , min = tmp_min[i], max = tmp_max[i]))
+    }
+    feature_dtw <- tmp_feature_dtw
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_dtw)
 
     # Feature turning points
-    feature_tp <- calculate_turningpoint_percentage(elem)
+    if(length(unique(elem)) > 2){
+      feature_tp <- calculate_turningpoint_percentage(elem)
+    } else {
+      feature_tp <- 0
+    }
     # Scaling
-    #feature_tp <- scale_feature(feature_tp,a,b,type)
+    feature_tp <- scale_feature(feature_tp, min = 0, max = 0.25)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_tp)
 
     # Feature variance
     feature_variance <- calculate_variance(elem)
     # Scaling
-    #feature_variance <- scale_feature(feature_variance,a,b,type)
+    feature_variance <- scale_feature(feature_variance, min = 0.48
+                                      , max = 3.473053e+13)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_variance)
 
     # Feature outliers
     feature_outlier <- calculate_outlier_percentage(elem)
     # Scaling
-    #feature_outlier <- scale_feature(feature_outlier,a,b,type)
+    feature_outlier <- scale_feature(feature_outlier, min = 0, max = 0.13)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_outlier)
 
     # Feature step changes
     feature_stepchange <- calculate_stepchange_percentage(elem)
     # Scaling
-    # feature_stepchange <- scale_feature(feature_stepchange,a,b,type)
+    feature_stepchange <- scale_feature(feature_stepchange, min = 0, max = 0.88)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_stepchange)
 
     # Feature quartile distribution
-    feature_quartiles <- calculate_quartile_distribution(elem)
+    if (length(quartile_index) == 0) {
+      feature_quartiles <- 0
+    } else {
+      # It is calculated only for numeric time series!
+      if(ts_count %in% quartile_index){
+        feature_quartiles <- calculate_quartile_distribution(elem)
+      }
+    }
     # Scaling
-    #tmp_quartiles <- c()
-    #for(q in feature_quartiles){
-    #  tmp_quartiles <- append(tmp_quartiles, scale_feature(q,a,b,type))
-    #}
-    # feature_quartiles <- tmp_quartiles
+    tmp_quartiles <- c()
+    tmp_min <- c(0, 0, 0, 0)
+    tmp_max <- c(0.58, 0.49, 0.56, 0.68)
+    for(i in 1:4){
+      tmp_quartiles <- append(tmp_quartiles,scale_feature(feature_quartiles[i]
+                                        , min = tmp_min[i], max = tmp_max[i]))
+    }
+    feature_quartiles <- tmp_quartiles
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_quartiles)
 
@@ -302,7 +340,7 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Feature sd
     feature_sd <- calculate_sd(detrended_ts)
     # Scaling
-    #feature_sd <- scale_feature(feature_sd,a,b,type)
+    feature_sd <- scale_feature(feature_sd, min = 0, max = 765707700)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_sd)
 
@@ -311,7 +349,7 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Feature peaks
     feature_peak <- calculate_peak_percentage(detrended_ts)
     # Scaling
-    #feature_peak <- scale_feature(feature_peak,a,b,type)
+    feature_peak <- scale_feature(feature_peak, min = 0, max = 0.44)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_peak)
 
@@ -324,7 +362,7 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Feature trend
     feature_trend <- calculate_trend(elem)
     # Scaling
-    #feature_trend <- scale_feature(feature_trend,a,b,type)
+    feature_trend <- scale_feature(feature_trend, min = 0, max = 1)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_trend)
 
@@ -333,7 +371,7 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Feature seasonality
     feature_season <- calculate_seasonality(elem)
     # Scaling
-    #feature_season <- scale_feature(feature_season,a,b,type)
+    feature_season <- scale_feature(feature_season, min = 0, max = 1)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_season)
 
@@ -351,7 +389,7 @@ classify_ts <- function(ts, na_option = "kalman"){
       feature_autocor <- feature_autocor + calculate_autocorrelation(data)
     }
     # Scaling
-    #feature_autocor <- scale_feature(feature_autocor/3,a,b,type)
+    feature_autocor <- scale_feature(feature_autocor/3, min = -0.04, max = 0.64)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_autocor)
 
@@ -362,7 +400,8 @@ classify_ts <- function(ts, na_option = "kalman"){
                                   calculate_partial_autocorrelation(data)
     }
     # Scaling
-    #feature_partial_autocor <- scale_feature(feature_partial_autocor/3,a,b,type)
+    feature_partial_autocor <- scale_feature(feature_partial_autocor/3
+                                             , min = -0.59, max = 0.15)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_partial_autocor)
 
@@ -375,7 +414,8 @@ classify_ts <- function(ts, na_option = "kalman"){
       feature_skewness <- feature_skewness + calculate_skewness(data)
     }
     # Scaling
-    #feature_skewness <- scale_feature(feature_skewness/3,a,b,type)
+    feature_skewness <- scale_feature(feature_skewness/3
+                                      , min = -1.54, max = 1.31)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_skewness)
 
@@ -385,7 +425,8 @@ classify_ts <- function(ts, na_option = "kalman"){
       feature_kurtosis <- feature_kurtosis + calculate_kurtosis(data)
     }
     # Scaling
-    #feature_kurtosis = scale_feature(feature_kurtosis/3,a,b,type)
+    feature_kurtosis = scale_feature(feature_kurtosis/3
+                                     , min = -1.38, max = 25.77)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_kurtosis)
 
@@ -396,7 +437,8 @@ classify_ts <- function(ts, na_option = "kalman"){
                                   calculate_non_linearity(data)
     }
     # Scaling
-    #feature_non_linearity <- scale_feature(feature_non_linearity/3,a,b,type)
+    feature_non_linearity <- scale_feature(feature_non_linearity/3,
+                                           min = 0.08, max = 157.55)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_non_linearity)
 
@@ -615,7 +657,7 @@ classify_ts <- function(ts, na_option = "kalman"){
       factor("low", levels = factor_levels)
   } else if (ts_taxonomy[["feature_periodicity"]] == 0) {
     ts_taxonomy_list[["Periodicity"]] <-
-      factor("none seasonality", levels = factor_levels)
+      factor("none periodicity", levels = factor_levels)
   } else {
     ts_taxonomy_list[["Periodicity"]] <-
       factor("very low", levels = factor_levels)

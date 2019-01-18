@@ -599,20 +599,21 @@ calculate_peak_percentage <- function(ts){
 #' @return The autocorrelation measure of \code{df}.
 #' If the input is not a data.frame, an error message is returned.
 #' @examples
-#' calculate_determination_coefficient(
+#' calculate_durbin_watson_test(
 #' df = multi_ts_list$`M-TS-1`$data,
 #' targetcol = colnames(multi_ts_list$`M-TS-1`$data)[1])
 #' @export
 calculate_durbin_watson_test <- function(df, targetcol){
   # If else clause to check the input
   if (is.data.frame(df)) {
-    dw <- 0
-    df_colnames <- colnames(df)
-    df_colnames <- df_colnames[which(df_colnames !=
-                                       targetcol & df_colnames != "date")]
+    df_colnames <- colnames(df)[which(colnames(df) != "date")]
+    df <- df[,df_colnames]
+    colnames(df)[which(colnames(df) == targetcol)] <- "target"
+
     # Transform the df into detrended data
     transform_df <- df
-    for(col in df_colnames){
+    for(col in colnames(df)){
+
       freq = get_ts_frequency(as.numeric(unlist(transform_df[col])))
       decomp <- decompose_ts(ts(as.numeric(unlist(transform_df[col])),
                                 f = freq))
@@ -620,14 +621,8 @@ calculate_durbin_watson_test <- function(df, targetcol){
       transform_df[col] <- deTREND
     }
     # Calculate DW on detrended df
-    dw_colnames = df_colnames[which(df_colnames != targetcol)]
-    for(col in dw_colnames){
-      dw_temp <- durbinWatsonTest(
-        lm(as.numeric(unlist(transform_df[targetcol])) ~
-             as.numeric(unlist(transform_df[col])), data = faithful))
-      dw <- dw + dw_temp$r
-    }
-    return(dw / length(dw_colnames))
+    dw <- durbinWatsonTest(lm(target ~ ., data = df))
+    return(dw$dw)
   } else {
     stop("A data.frame object is required as input!")
   }
@@ -686,22 +681,17 @@ calculate_quartile_distribution <- function(ts){
 calculate_determination_coefficient <- function(df, targetcol){
   # If else clause to check the input
   if (is.data.frame(df)) {
-    R2 <- 0
-    df_colnames <- colnames(df)
-    df_colnames <- df_colnames[which(df_colnames !=
-                                       targetcol & df_colnames != "date")]
-    for(col in df_colnames){
-      lm = lm(as.numeric(unlist(df[targetcol])) ~
-                as.numeric(unlist(df[col])), data = faithful)
-      R2 = R2 + summary(lm)$r.squared
-    }
-    return(R2)
+    df_colnames <- colnames(df)[which(colnames(df) != "date")]
+    df <- df[,df_colnames]
+    colnames(df)[which(colnames(df) == targetcol)] <- "target"
+    lm = lm(target ~ ., data = df)
+    return(summary(lm)$r.squared)
   } else {
     stop("A data.frame object is required as input!")
   }
 
-
 }
+
 
 #' Generates the number of attributes of a data.frame object.
 #'

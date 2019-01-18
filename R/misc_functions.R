@@ -99,44 +99,6 @@ decompose_ts <- function(ts, transform = TRUE){
 
 }
 
-
-
-
-old_scale_features <- function(x, a, b, type){
-  #fehlt warscheinlich noch etwas für negative values
-  #	% Rule-induction-for Wang et al. 2009
-
-  # If else clause to check the input
-  if (!is.character(type) | as.character(type) != "f1" &
-      as.character(type) != "f2" & as.character(type) != "f2") {
-    print("Only a string with type 'f1' or 'f2' or 'f3' are allowed")
-  } else if (!is.numeric(x) | !is.numeric(a) | !is.numeric(b)) {
-    print("Only numeric values for x, a and b are allowed")
-  } else {
-    if (type == "f1") {
-      # f1 maps [0,infinity) to [0,1]
-      eax <- exp(a * x)
-      if (eax == Inf){
-        f1eax <- 1
-      } else {
-        f1eax <- (eax - 1) / (eax + b)
-      }
-      return(f1eax)
-    } else if (type == "f2") {
-      # f2 maps [0,1] onto [0,1]
-      eax <- exp(a * x)
-      ea <- exp(a)
-      return((eax - 1)/(eax + b) * (ea + b) / (ea - 1))
-    } else {
-      # f3 maps [-1,infinity] onto [0,1]
-      f3 = 1
-      return(f3)
-    }
-  }
-
-}
-
-
 #' Scale a numeric value into a standardized interval [0,1].
 #'
 #' This function scales a numeric value into a standardized interval [0,1].
@@ -155,7 +117,7 @@ old_scale_features <- function(x, a, b, type){
 #' scale_feature(x = 2.5, min = 1, max = 5)
 scale_feature <- function(x, min, max) {
 
-  if (!is.numeric(x) | !is.numeric(a) | !is.numeric(b)) {
+  if (is.numeric(x) & is.numeric(min) & is.numeric(max) & min < max) {
     if (min < max) {
       # Maps (-infinity,infinity) to [0,1]
       scaled_x = (x - min) / (max - min)
