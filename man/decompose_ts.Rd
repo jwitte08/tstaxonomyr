@@ -22,7 +22,9 @@ The time series object is decomposed into trend, seasonal and remainder.
 Remainder is the ts minus the trend and seasonal.
 As input is only required an object from the class time series.
 Otherwise the function returns an error message.
+The code is adopted from Hyndman, Rob J. which provides him under:
+https://robjhyndman.com/hyndsight/tscharacteristics/
 }
 \examples{
-decompose_ts(ts = ts_object, transform = TRUE)
+decompose_ts(ts = datasets::BJsales, transform = TRUE)
 }

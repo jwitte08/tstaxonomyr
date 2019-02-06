@@ -4,14 +4,18 @@
 \alias{classify_ts}
 \title{Classifies a time series based on the defined ts taxonomy features.}
 \usage{
-classify_ts(ts, na_option = "random")
+classify_ts(ts, na_option = "mean", taxonomy_type = "v1")
 }
 \arguments{
 \item{ts}{Either a vector, time series or data.frame object representing
 a time series is allowed.}
 
-\item{na_option}{A string value containing either 'mean', 'random',
-or'median'; Standard values is 'random'.}
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
+
+\item{taxonomy_type}{Either 'v1' or 'v2'. v1 uses the basic time series
+taxonomy containing the overall 24 features and v2 the feature selected ts
+taxonomy containing 15 features. Standard values is 'v1'.}
 }
 \value{
 The final list, containing all scaled feature factor values.
@@ -25,23 +29,31 @@ classify univariate and multivariate time series based on it.
 As input for \code{ts} is only required an object from the classes
 time series, data.frame or vector. Each of them should represent an
 time series. Otherwise the function returns an error message. Also, for
-\code{na_option} is only required the string 'mean', 'median' or 'random'
+\code{na_option} is only required the string 'mean' or'kalman'
 allowed. This means, that all na values are either replaced by the mean,
-median or a random number between the min and max of the ts.
-The standard value of \code{na_option} is 'random'. The following 24
-features: "number_of_observations", "number_of_attributes",
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'. The paramter
+\code{taxonomy_type} defines whether the overall 24 features or a ligther
+version of 15 features based on feature selection is applied. 'v1' the basic
+taxonomy contains the following features:"number_of_observations",
 "coefficient of determination", "durbin watson test", "mean", "periodicity",
 "chaos", "entropy", "selfsimilarity", "dynamic time warping (DTW) distance ",
 "percentage of turning points", "variance", "percentage of outliers",
 "percentage of step changes", "quartile distribition", "standard deviation",
 "percentage of peaks", "trend", "seasonality", "autocorrelation",
 "partial autocorrelation", "skewness", "kurtosis", "non linearity"
-are calculated, scaled and then assigned to the taxonomy values.
+"number_of_attributes". The ligther version 'v2' contains the following 15
+features: "coefficient of determination", "durbin watson test",
+"periodicity", "chaos", "entropy", "percentage of turning points",
+"percentage of outliers", "percentage of step changes",
+"quartile distribition", "percentage of peaks", "trend", "seasonality",
+"autocorrelation", "partial autocorrelation", "number_of_attributes".
 }
 \examples{
 ts_vector = c(1,4,6,1,24,5,1)
+df = multi_ts_list$`M-TS-1`$data
+ts = datasets::BJsales
 classify_ts(ts = ts_vector_object)
-classify_ts(ts = ts_vector_object, na_option = "random")
-classify_ts(ts = dataframe_object, na_option = "mean")
-classify_ts(ts = ts_object, na_option = "median")
+classify_ts(ts = df, na_option = "kalman")
+classify_ts(ts = ts, na_option = "mean")
 }

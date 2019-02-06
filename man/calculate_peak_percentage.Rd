@@ -2,22 +2,38 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_peak_percentage}
 \alias{calculate_peak_percentage}
-\title{Generates the percentage of peaks of an ts object.}
+\title{Generates the percentage of peaks of a ts object.}
 \usage{
-calculate_peak_percentage(ts)
+calculate_peak_percentage(ts, na_option = "mean", minpeakheight = 0.6,
+  minpeakdistance = 1, threshold = 0)
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
+
+\item{minpeakheight}{Numeric, the minimum height a peak has to have
+to be recognized as such}
+
+\item{minpeakdistance}{Integer, the minimum distance (in indices) peaks
+have to have to be counted}
+
+\item{threshold}{Integer, minimum peak number}
 }
 \value{
 The percentage of peaks of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This function generates the percentage of peaks of an time series object.
+This function generates the percentage of peaks of a time series object.
 As input is only required an object from the class time series.
-Otherwise the function returns an error message.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_peak_percentage(ts = tsobject)
+calculate_peak_percentage(ts = datasets::BJsales)
 }

@@ -18,6 +18,8 @@ This is a function to find the period of an vector object.
 The vector object is representing a time series.
 As input is only required an object from the class time series.
 Otherwise the function returns an error message.
+The code is adopted from Hyndman, Rob J. which provides him under:
+https://robjhyndman.com/hyndsight/tscharacteristics/
 }
 \examples{
 ts_vector = c(1,4,6,1,24,5,1)

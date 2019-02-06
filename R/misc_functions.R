@@ -6,6 +6,8 @@
 #' The vector object is representing a time series.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
+#' The code is adopted from Hyndman, Rob J. which provides him under:
+#' https://robjhyndman.com/hyndsight/tscharacteristics/
 #'
 #' @param x A vector object representing a time series.
 #' @return The period of \code{x}.
@@ -14,11 +16,15 @@
 #' ts_vector = c(1,4,6,1,24,5,1)
 #' get_ts_frequency(x = ts_vector)
 get_ts_frequency <- function(x){
+  # --------------------------------------------------------------------
+  # The code is adopted from Hyndman, Rob J. which provides him under:
+  # https://robjhyndman.com/hyndsight/tscharacteristics/
+  # Decomposition of the ts object
   # If else clause to check the input
   if (is.vector(x)) {
     x_ts <- as.ts(x)
     # Remove trend from data
-    x_ts <- residuals(tslm(x_ts ~ trend))
+    x_ts <- residuals(forecast::tslm(x_ts ~ trend))
     # Compute spectrum by fitting ar model to largest section of x
     n_freq <- 500
     spec <- spec.ar(c(na.contiguous(x_ts)), plot = FALSE, n.freq = n_freq)
@@ -55,6 +61,8 @@ get_ts_frequency <- function(x){
 #' Remainder is the ts minus the trend and seasonal.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
+#' The code is adopted from Hyndman, Rob J. which provides him under:
+#' https://robjhyndman.com/hyndsight/tscharacteristics/
 #'
 #' @param ts A time series object.
 #' @param transform A boolean to enable BoxCox transformation.
@@ -62,10 +70,13 @@ get_ts_frequency <- function(x){
 #' an error message is returned. The list consist of the ts, the trend of
 #' the ts, the seasonal of the ts and the remainder of the ts.
 #' @examples
-#' decompose_ts(ts = ts_object, transform = TRUE)
+#' decompose_ts(ts = datasets::BJsales, transform = TRUE)
 decompose_ts <- function(ts, transform = TRUE){
   # If else clause to check the input
   if (is.ts(ts)) {
+    # --------------------------------------------------------------------
+    # The code is adopted from Hyndman, Rob J. which provides him under:
+    # https://robjhyndman.com/hyndsight/tscharacteristics/
     # Transform ts
     if (transform & min(ts, na.rm = TRUE) >= 0) {
       lambda <- BoxCox.lambda(na.contiguous(ts))
@@ -129,4 +140,49 @@ scale_feature <- function(x, min, max) {
     print("Only numeric values for x, min and max are allowed!")
   }
 
+}
+
+#' Replace all missing observations of a time series or vector object
+#'
+#' This is a function to Replace all missing observations of a time series or
+#' vector object. For \code{na_option} is only required the string 'mean' or
+#' 'kalman' allowed. This means, that all na values are either replaced by the
+#' mean, or kalman imputation of the ts. The standard value of \code{na_option}
+#' is 'mean'. Otherwise the function returns an error message.
+#'
+#' @param ts A time series or vector object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
+#' @return The na imputated \code{ts}. If the input is not a ts or
+#' vector, an error message is returned.
+#' @examples
+#' predict_missing_observations(ts = datasets::BJsales)
+predict_missing_observations <- function(ts, na_option = "mean") {
+  # If else clause to check the 'na_option' input parameter
+  if (is.ts(ts) | is.vector(ts)) {
+    if (na_option == "mean") {
+      # Replace all NA by mean
+      adjusted_ts <- na.mean(ts, option = na_option)
+      return(adjusted_ts)
+    } else if (na_option == "kalman") {
+      if ((length(as.numeric(ts)) - length(na.omit(as.numeric(ts)))) >= 3){
+        # Replace all NA by kalman
+        adjusted_ts <- na.kalman(ts)
+        return(adjusted_ts)
+      } else {
+        print("For kalman imputation are at least 3 NA observations
+              + required, thus the simple 'mean' imputation is used")
+        # Replace all NA by mean
+        adjusted_ts <- na.mean(ts, option = na_option)
+        return(adjusted_ts)
+      }
+
+    } else {
+      stop("ERROR: input parameter 'na_option' has to contain either
+           'mean' or 'kalman'")
+    }
+
+  } else {
+    stop("An time series or vector object is required!")
+  }
 }

@@ -2,7 +2,7 @@
 tstaxonomyr
 ===========
 
-A time series taxonomy to classify univariate or multivariate time series based on 24 different (statistical) time series features. The taxonomy function of this package 'classify\_ts' generates and collects all feature values. Next the feature values are scaled to \[0,1\] and then assigned to the defined taxonomy factors. Additionally, each feature can be calculated for it own.
+A time series taxonomy to classify univariate or multivariate time series based on either 24 or 15 different (statistical) time series features. The different taxonomy versions can be selected by the taxonomy\_type parameter from the function 'classify\_ts' of this package. It generates and collects all feature values. Next the feature values are scaled to \[0,1\] and then assigned to the defined taxonomy factors. Additionally, each feature can be calculated for it's own.
 
 Usage
 -----
@@ -16,7 +16,8 @@ library(tstaxonomyr)
 ts_sales = datasets::BJsales
 # Classify the time series based on the defined taxonomy 
 # in 'classify_ts'
-classified_ts <- classify_ts(ts = ts_sales, na_option = "mean")
+classified_ts <- classify_ts(ts = ts_sales,
+                             na_option = "mean", taxonomy_type = "v1")
 # Get the classification factor results
 classified_ts
 
@@ -67,11 +68,6 @@ All provided functions of this package:
     -   calculate\_quartile\_distribution: Generates the percentage of the values in the 4 quartiles of an ts object.
     -   calculate\_determination\_coefficient: Generates the coefficient of determination (R2) of an data.frame object.
     -   calculate\_attributenumber: Generates the number of attributes of an data.frame object.
-    -   get\_ts\_frequency: Get the period of an vector object.
-    -   decompose\_ts: Decompose a time series object into trend, seasonal and remainder.
-    -   scale\_feature: Scale a numeric value into a standardized interval \[0,1\].
-    -   get\_ts\_list: Get the time series list containing 1000 time series data.
-    -   get\_blocklist: Get the blocklist with the matrices for the DTW distance calucation.
 
 License
 -------

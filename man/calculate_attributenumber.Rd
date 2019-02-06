@@ -2,7 +2,7 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_attributenumber}
 \alias{calculate_attributenumber}
-\title{Generates the number of attributes of an data.frame object.}
+\title{Generates the number of attributes of a data.frame object.}
 \usage{
 calculate_attributenumber(df)
 }
@@ -11,14 +11,14 @@ calculate_attributenumber(df)
 }
 \value{
 The number of attributes of \code{df}.
-If the input is not a data.frame, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This function generates the number of attributes of an data.frame object.
+This function generates the number of attributes of a data.frame object.
 As input is only required an object from the class data.frame.
 The data.frame object should represent an multivariate ts.
 Otherwise the function returns an error message.
 }
 \examples{
-calculate_attributenumber(df = dataframe_object)
+calculate_attributenumber(df = multi_ts_list$`M-TS-1`$data)
 }

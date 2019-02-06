@@ -3,22 +3,29 @@
 \name{calculate_partial_autocorrelation}
 \alias{calculate_partial_autocorrelation}
 \title{Generates the mean of the partial autocorrelationfunction (PACF)
-of an ts object.}
+of a ts object.}
 \usage{
-calculate_partial_autocorrelation(ts)
+calculate_partial_autocorrelation(ts, na_option = "mean")
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
 }
 \value{
 The mean of the PACF of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This is a function to generate the mean of the PACF of an time series object.
+This is a function to generate the mean of the PACF of a time series object.
 As input is only required an object from the class time series.
-Otherwise the function returns an error message.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_partial_autocorrelation(ts = tsobject)
+calculate_partial_autocorrelation(ts = datasets::BJsales)
 }

@@ -2,26 +2,42 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_dtw_blockdistance}
 \alias{calculate_dtw_blockdistance}
-\title{Generates the dynamic time warping (DTW) for an ts object to the 1000 ts
+\title{Generates the dynamic time warping (DTW) for a ts object to the 1000 ts
 from the list in /data.}
 \usage{
-calculate_dtw_blockdistance(ts)
+calculate_dtw_blockdistance(ts, na_option = "mean",
+  window_type = "slantedband", window_size = 100,
+  dist_method = "Euclidean")
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
+
+\item{window_type}{Windowing function. Character: "none", "itakura",
+"sakoechiba", "slantedband", or a function}
+
+\item{window_size}{Integer window size for the window type.}
+
+\item{dist_method}{Distance function to use.}
 }
 \value{
-The DTW of \code{ts} to the 10 different blocks. Thus an vector
-with 10 DTW distances is returned. The first number is the DTW to
-block 1,..., the last number is the DTW to block 10. If the input is not
-a ts object, an error message is returned.
+The DTW of \code{ts} to the 13 different blocks. Thus an vector
+with 13 DTW distances is returned. The first number is the DTW to
+block 1,..., the last number is the DTW to block 13.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This is a function to generate the DTW for a ts to the 10 blocks from the
-1000 ts in the list in /data. Each block contains 100 ts. As input is only
-required an object from the class time series. Otherwise the function
-returns an error message.
+This is a function to generate the DTW for a ts to the 13 blocks from the
+1000 ts in the un_ts_list and multi_ts_list in /data. Each block contains
+100 ts. As input is only required an object from the class time series.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_dtw_blockdistance(ts = tsobject)
+calculate_dtw_blockdistance(ts = datasets::BJsales)
 }

@@ -3,20 +3,33 @@
 #'
 #' This is a function to generate the skewness of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param type integer of 1 to 3 defining one of the three skewness algorithms
+#' of the skewness function from the e1071 R package.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The skewness of \code{ts}.
-#' If the input is not a ts object, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_skewness(ts = datasets::BJsales)
 #' @export
-calculate_skewness <- function(ts){
+calculate_skewness <- function(ts, na_option = "mean", type = 3){
   # If else clause to check the input
-  if(is.ts(ts)){
-    return(skewness(ts, na.rm = FALSE, type = 3))
+  if(is.ts(ts) & type %in% c(1, 2, 3) & na_option %in% c("mean", "kalman")){
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    return(e1071::skewness(ts, type = type))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For type only an integer
+         between 1 to 3 and for na_option only 'mean' or 'kalman'")
   }
 }
 
@@ -24,20 +37,33 @@ calculate_skewness <- function(ts){
 #'
 #' This is a function to generate the kurtosis of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
+#' @param type integer of 1 to 3 defining one of the three skewness algorithms
+#' of the skewness function from the e1071 R package.
 #' @return The skewness of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_kurtosis(ts = datasets::BJsales)
 #' @export
-calculate_kurtosis <- function(ts){
+calculate_kurtosis <- function(ts, na_option = "mean", type = 3){
   # If else clause to check the input
-  if (is.ts(ts)) {
-    return(kurtosis(ts, na.rm = FALSE, type = 3))
+  if(is.ts(ts) & type %in% c(1, 2, 3) & na_option %in% c("mean", "kalman")){
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    return(e1071::kurtosis(ts, na.rm = FALSE, type = type))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For type only an integer
+         between 1 to 3 and for na_option only 'mean' or 'kalman'")
   }
 }
 
@@ -45,17 +71,32 @@ calculate_kurtosis <- function(ts){
 #'
 #' This is a function to generate the trend of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
+#' The code is adopted from Hyndman, Rob J. which provides him under:
+#' https://robjhyndman.com/hyndsight/tscharacteristics/
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The trend of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_trend(ts = datasets::BJsales)
 #' @export
-calculate_trend <- function(ts){
+calculate_trend <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    # --------------------------------------------------------------------
+    # The code is adopted from Hyndman, Rob J. which provides him under:
+    # https://robjhyndman.com/hyndsight/tscharacteristics/
     # Decomposition of the ts object
     freq <- get_ts_frequency(as.numeric(ts))
     decomposed_ts <- decompose_ts(ts)
@@ -83,7 +124,8 @@ calculate_trend <- function(ts){
     }
     return(trend)
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option only
+         'mean' or 'kalman' are allowed!")
   }
 
 }
@@ -92,21 +134,40 @@ calculate_trend <- function(ts){
 #'
 #' This is a function to generate the mean of the ACF of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
+#' @param type String giving the type of acf to be computed. Allowed
+#' values are "correlation" (the default), "covariance" or "partial".
+#' Will be partially matched.
+#' @param demean True/False boolean. Should the covariances be about the
+#' sample means?
 #' @return The mean of the ACF of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_autocorrelation(ts = datasets::BJsales)
 #' @export
-calculate_autocorrelation <- function(ts){
+calculate_autocorrelation <- function(ts, na_option = "mean",
+                                      type = "covariance", demean = TRUE){
   # If else clause to check the input
-  if (is.ts(ts)) {
-    acf = acf(ts, plot = FALSE)
+  if (is.ts(ts) & type %in% c("correlation", "covariance", "partial")
+      & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    acf = stats::acf(ts, plot = FALSE, demean = demean, type = type)
     return(mean(acf$acf))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For type only
+         'correlation' or 'covariance' or 'partial' is allowed. For na_option
+         only 'mean' or 'kalman' are allowed!")
   }
 }
 
@@ -115,20 +176,31 @@ calculate_autocorrelation <- function(ts){
 #' This is a function to generate the mean of the normalized values [0,1]
 #' of a time series object. As input is only required an object from
 #' the class time series. Otherwise the function returns an error message.
+#'  Also, for \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The normalized mean of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_mean(ts = datasets::BJsales)
 #' @export
-calculate_mean <- function(ts){
+calculate_mean <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
     x = (ts - min(ts)) / (max(ts) - min(ts))
     return(mean(x))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option only
+         'mean' or 'kalman' are allowed!")
   }
 
 }
@@ -137,20 +209,31 @@ calculate_mean <- function(ts){
 #'
 #' This function generates the standard deviation of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The standard deviation of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_sd(ts = datasets::BJsales)
 #' @export
-calculate_sd <- function(ts){
+calculate_sd <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
     return(sd(ts))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option only
+         'mean' or 'kalman' are allowed!")
   }
 
 }
@@ -182,22 +265,48 @@ calculate_observationnumber <- function(ts){
 #' This function generates the non linearity factor of a time series object.
 #' The Teraesvirta's neural network test for neglected nonlinearity is applied.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
+#' The code is adopted from Hyndman, Rob J. which provides him under:
+#' https://robjhyndman.com/hyndsight/tscharacteristics/
+#'
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
+#' @param scale Boolean, whether the data should be scaled before computing
+#' the test statistic. Default value is 'TRUE'.
+#' @param type String indicating whether the Chi-Squared test or the
+#' F-test is computed. Thus, valid are "Chisq" (default) and "F".
 #' @return The non linearity factor of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_non_linearity(ts = datasets::BJsales)
 #' @export
-calculate_non_linearity <- function(ts){
+calculate_non_linearity <- function(ts, na_option = "mean", scale = TRUE,
+                                    type = "Chisq"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & type %in% c("Chisq","F")
+      & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    # --------------------------------------------------------------------
+    # The code is adopted from Hyndman, Rob J. which provides him under:
+    # https://robjhyndman.com/hyndsight/tscharacteristics/
+    # Decomposition of the ts object
     # use the terasvirta.test for non linearity check
-    p <- tseries::terasvirta.test(na.contiguous(ts))[["statistic"]]
+    p <- tseries::terasvirta.test(na.contiguous(ts), scale = scale,
+                                  type = type)[["statistic"]]
     return(p)
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For type only
+         'Chisq' or 'F' is allowed. For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -206,17 +315,33 @@ calculate_non_linearity <- function(ts){
 #'
 #' This function generates the seasonality factor of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
+#' The code is adopted from Hyndman, Rob J. which provides him under:
+#' https://robjhyndman.com/hyndsight/tscharacteristics/
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The seasonality factor of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_seasonality(ts = datasets::BJsales)
 #' @export
-calculate_seasonality <- function(ts){
+calculate_seasonality <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    # --------------------------------------------------------------------
+    # The code is adopted from Hyndman, Rob J. which provides him under:
+    # https://robjhyndman.com/hyndsight/tscharacteristics/
+    # Decomposition of the ts object
     # Decomposition
     freq <- get_ts_frequency(as.numeric(ts))
     decomposed_ts <- decompose_ts(ts)
@@ -227,20 +352,23 @@ calculate_seasonality <- function(ts){
     } else { # Nonseasonal data
       fits <- decomposed_ts[["trend"]]
     }
-    adjusted_ts <- decomposed_ts[["ts"]] - fits + mean(decomposed_ts[["trend"]], na.rm=TRUE)
+    adjusted_ts <- decomposed_ts[["ts"]] - fits +
+      mean(decomposed_ts[["trend"]], na.rm=TRUE)
 
     variance_adj_ts <- var(adjusted_ts, na.rm=TRUE)
 
     if (freq > 1 & !is.null(decomposed_ts[["season"]])) {
       detrend <- decomposed_ts[["ts"]] - decomposed_ts[["trend"]]
       season <- ifelse (var(detrend, na.rm = TRUE) < 1e-10, 0,
-                       max(0, min(1, 1 - variance_adj_ts / var(detrend, na.rm=TRUE))))
+                       max(0, min(1, 1 - variance_adj_ts /
+                                    var(detrend, na.rm=TRUE))))
     } else { # non-seasonal data
       season <- 0
     }
     return(season)
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -250,20 +378,38 @@ calculate_seasonality <- function(ts){
 #' This function generates the periodicity/frequency factor of an
 #' time series object. As input is only required an object from the
 #' class time series. Otherwise the function returns an error message.
+#' Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
+#' The code is adopted from Hyndman, Rob J. which provides him under:
+#' https://robjhyndman.com/hyndsight/tscharacteristics/
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The periodicity/frequency factor of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_periodicity(ts = datasets::BJsales)
 #' @export
-calculate_periodicity <- function(ts){
+calculate_periodicity <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    # --------------------------------------------------------------------
+    # The code is adopted from Hyndman, Rob J. which provides him under:
+    # https://robjhyndman.com/hyndsight/tscharacteristics/
+    # Decomposition of the ts object
     freq <- get_ts_frequency(as.numeric(ts))
     return((exp((freq - 1) / 50) - 1) / (1 + exp((freq - 1) / 50)))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -273,16 +419,32 @@ calculate_periodicity <- function(ts){
 #' This is a function to generate the maximum Lyapunov exponent (chaos)
 #' of a time series object. As input is only required an object from the
 #' class time series. Otherwise the function returns an error message.
+#' Also, for \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
+#' The code is adopted from Hyndman, Rob J. which provides him under:
+#' https://robjhyndman.com/hyndsight/tscharacteristics/
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The maximum Lyapunov exponent (chaos)  of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_chaos(ts = datasets::BJsales)
 #' @export
-calculate_chaos <- function(ts){
+calculate_chaos <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    # --------------------------------------------------------------------
+    # The code is adopted from Hyndman, Rob J. which provides him under:
+    # https://robjhyndman.com/hyndsight/tscharacteristics/
+    # Decomposition of the ts object
     length <- calculate_observationnumber(ts)
     freq <- get_ts_frequency(as.numeric(ts))
 
@@ -303,7 +465,8 @@ calculate_chaos <- function(ts){
       return(fLyap)
     }
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -313,20 +476,36 @@ calculate_chaos <- function(ts){
 #' This function generates the approximate entropy of a time series object.
 #' As input is only required an object from the class time series.
 #' Otherwise the function returns an error message.
+#' Also, for \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
+#' @param edim The embedding dimension, as for chaotic time series;
+#' a preferred value is 2.
+#' @param r Filter factor; work on heart rate variability has suggested
+#' setting r to be 0.2 times the standard deviation of the data.
 #' @return The approximate entropy of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_entropy(ts = datasets::BJsales)
 #' @export
-calculate_entropy <- function(ts){
+calculate_entropy <- function(ts, na_option = "mean", edim = 2,
+                              r = 0.2*sd(ts)){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
     # default settings: approx_entropy(ts, edim = 2, r = 0.2*sd(ts), elag = 1)
-    return(approx_entropy(ts))
+    return(pracma::approx_entropy(ts, edim = edim, r = r))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -336,20 +515,40 @@ calculate_entropy <- function(ts){
 #' This is a function to measure the self similarity by the Hurst exponent
 #' of a time series object. As input is only required an object from the
 #' class time series. Otherwise the function returns an error message.
+#' Also, for \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
+#' The code is adopted from Hyndman, Rob J. which provides him under:
+#' https://robjhyndman.com/hyndsight/tscharacteristics/
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
+#' @param nar Number of autoregressive parameters p.
+#' @param nma Number of moving average parameters q.
 #' @return The Hurst exponent of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_selfsimilarity(ts = datasets::BJsales)
 #' @export
-calculate_selfsimilarity <- function(ts){
+calculate_selfsimilarity <- function(ts, na_option = "mean", nar = 0, nma = 0){
   # If else clause to check the input
-  if (is.ts(ts)) {
-    hurst_exponent <- fracdiff::fracdiff(na.contiguous(ts), 0, 0)[["d"]] + 0.5
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    # --------------------------------------------------------------------
+    # The code is adopted from Hyndman, Rob J. which provides him under:
+    # https://robjhyndman.com/hyndsight/tscharacteristics/
+    # Decomposition of the ts object
+    hurst_exponent <- fracdiff::fracdiff(na.contiguous(ts),
+                                         nar = nar, nma = nma)[["d"]] + 0.5
     return(hurst_exponent)
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -358,44 +557,66 @@ calculate_selfsimilarity <- function(ts){
 #' from the list in /data.
 #'
 #' This is a function to generate the DTW for a ts to the 13 blocks from the
-#' 1000 ts in the un_ts_list and multi_ts_list in /data. Each block contains 100 ts. As input is only
-#' required an object from the class time series. Otherwise the function
-#' returns an error message.
+#' 1000 ts in the un_ts_list and multi_ts_list in /data. Each block contains
+#' 100 ts. As input is only required an object from the class time series.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
+#' @param window_type Windowing function. Character: "none", "itakura",
+#' "sakoechiba", "slantedband", or a function
+#' @param window_size Integer window size for the window type.
+#' @param dist_method Distance function to use.
+#'
 #' @return The DTW of \code{ts} to the 13 different blocks. Thus an vector
 #' with 13 DTW distances is returned. The first number is the DTW to
-#' block 1,..., the last number is the DTW to block 13. If the input is not
-#' a ts object, an error message is returned.
+#' block 1,..., the last number is the DTW to block 13.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_dtw_blockdistance(ts = datasets::BJsales)
 #' @export
-calculate_dtw_blockdistance <- function(ts){
+calculate_dtw_blockdistance <- function(ts, na_option = "mean",
+                                        window_type = "slantedband",
+                                        window_size = 100,
+                                        dist_method = "Euclidean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
     blocks <- tstaxonomyr::matrix_block_list
     # Distance vector for containing dtw distance for ts to all blocks
     distance_vector <- c()
 
     # Generate a transposed matrix of ts, a row contains a ts object
     temp_df <- as.data.frame(as.numeric(ts))
-    temp_df <- transpose(temp_df)
+    temp_df <- data.table::transpose(temp_df)
     matrix_ts <- as.matrix.data.frame(temp_df)
 
     # Generate for each of the 13 blocks the DTW distance and store it
     for (elem in blocks) {
       # Get the DTW distance matrix
-      alignment<-dtwDist(matrix_ts, elem)
+      alignment <- dtw::dtwDist(matrix_ts, elem,
+                           window.type = window_type,
+                           window.size = window_size,
+                           dist.method = dist_method)
 
-      # Sum the results for the block
-      dtw <- sum(alignment)
+      # Mean over all the distances to the block elements
+      dtw <- mean(alignment)
 
       # Append the block DTW distance to final vector
-      distance_vector <- append(distance_vector,dtw)
+      distance_vector <- append(distance_vector, dtw)
     }
     return(distance_vector)
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -406,19 +627,30 @@ calculate_dtw_blockdistance <- function(ts){
 #' a time series object. Points are significant turning points if their
 #' probability is smaller the significance level 5%.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The percentage of turning points of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_turningpoint_percentage(ts = datasets::BJsales)
 #' @export
-calculate_turningpoint_percentage <- function(ts){
+calculate_turningpoint_percentage <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+
     # Create turningpoint object
-    tp <- turnpoints(ts)
+    tp <- pastecs::turnpoints(ts)
     # if number of tp is 0, return directly 0
     if (tp$nturns > 0) {
       # Get all turning points
@@ -436,7 +668,8 @@ calculate_turningpoint_percentage <- function(ts){
       return(sigTP / calculate_observationnumber(ts))
     }
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -446,21 +679,32 @@ calculate_turningpoint_percentage <- function(ts){
 #'
 #' This is a function to generate the mean of the PACF of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The mean of the PACF of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_partial_autocorrelation(ts = datasets::BJsales)
 #' @export
-calculate_partial_autocorrelation <- function(ts){
+calculate_partial_autocorrelation <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
-    pacf <- pacf(ts, plot = FALSE)
-    return(mean(pacf$acf))
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    p_acf <- stats::pacf(ts, plot = FALSE)
+    return(mean(p_acf$acf))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -469,20 +713,31 @@ calculate_partial_autocorrelation <- function(ts){
 #'
 #' This is a function to generate the variance of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The variance of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_variance(ts = datasets::BJsales)
 #' @export
-calculate_variance <- function(ts){
+calculate_variance <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
-    return(var(ts))
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    return(stats::var(ts))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -495,21 +750,31 @@ calculate_variance <- function(ts){
 #' applied to identify number of outliers. Then the mean of the three test
 #' results is used as final number of outliers. As input is only required an
 #' object from the class time series. Otherwise the function returns
-#' an error message.
+#' an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The percentage of outliers of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_outlier_percentage(ts = datasets::BJsales)
 #' @export
-calculate_outlier_percentage <- function(ts){
+calculate_outlier_percentage <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
     # All tests with significance level 5%
-    z_test <- sum(scores(ts, type="z", prob = 0.95))
-    chisq_test <- sum(scores(ts, type="chisq", prob = 0.95))
-    t_test <- sum(scores(ts, type="t", prob = 0.95))
+    z_test <- sum(outliers::scores(ts, type="z", prob = 0.95))
+    chisq_test <- sum(outliers::scores(ts, type="chisq", prob = 0.95))
+    t_test <- sum(outliers::scores(ts, type="t", prob = 0.95))
     # Get the mean over the 3 test results
     outlier_mean <- mean(c(z_test, chisq_test, t_test))
     # Return the outlier percentage of the series
@@ -519,7 +784,8 @@ calculate_outlier_percentage <- function(ts){
       return(outlier_mean / calculate_observationnumber(ts))
     }
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -529,20 +795,30 @@ calculate_outlier_percentage <- function(ts){
 #' This is a function to generate the percentage of step changes of
 #' a time series object. As input is only required an object from the class
 #' time series. Otherwise the function returns an error message.
+#' Also, for \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The percentage of step changes of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_stepchange_percentage(ts = datasets::BJsales)
 #' @export
-calculate_stepchange_percentage <- function(ts){
+calculate_stepchange_percentage <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
     number_of_stepchanges = 0
     for(i in 5:calculate_observationnumber(ts)){
-      if (abs(as.numeric(ts)[i] - mean(as.numeric(ts)[1:(i - 1)])) >
-          2 * sd(as.numeric(ts)[1:(i - 1)])) {
+      if (base::abs(as.numeric(ts)[i] - base::mean(as.numeric(ts)[1:(i - 1)])) >
+          2 * stats::sd(as.numeric(ts)[1:(i - 1)])) {
         number_of_stepchanges <- number_of_stepchanges + 1
       }
     }
@@ -553,7 +829,8 @@ calculate_stepchange_percentage <- function(ts){
     }
 
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -562,26 +839,49 @@ calculate_stepchange_percentage <- function(ts){
 #'
 #' This function generates the percentage of peaks of a time series object.
 #' As input is only required an object from the class time series.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
+#' @param minpeakheight Numeric, the minimum height a peak has to have
+#' to be recognized as such
+#' @param minpeakdistance Integer, the minimum distance (in indices) peaks
+#' have to have to be counted
+#' @param threshold Integer, minimum peak number
+#'
 #' @return The percentage of peaks of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_peak_percentage(ts = datasets::BJsales)
 #' @export
-calculate_peak_percentage <- function(ts){
+calculate_peak_percentage <- function(ts, na_option = "mean",
+                                      minpeakheight = 0.6,
+                                      minpeakdistance = 1,
+                                      threshold = 0){
   # If else clause to check the input
-  if (is.ts(ts)) {
-    percentage_peaks <- nrow(findpeaks(as.numeric(ts), minpeakheight = 0.6)) /
-      calculate_observationnumber(ts)
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+    percentage_peaks <- nrow(pracma::findpeaks(as.numeric(ts),
+                                          minpeakheight = minpeakheight,
+                                          minpeakdistance = minpeakdistance,
+                                          threshold = threshold)) /
+                                          calculate_observationnumber(ts)
     if (length(percentage_peaks) == 0){
       return(0)
     } else {
       return(percentage_peaks)
     }
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -592,23 +892,39 @@ calculate_peak_percentage <- function(ts){
 #' It is based on the durbin watson test. The test is based on detrended data.
 #' The data.frame object should represent an multivariate ts. As input is
 #' only required an object from the class data.frame.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param df A data.frame object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @param targetcol A character containing a column name of the \code{df}.
 #' @return The autocorrelation measure of \code{df}.
-#' If the input is not a data.frame, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_durbin_watson_test(
 #' df = multi_ts_list$`M-TS-1`$data,
 #' targetcol = colnames(multi_ts_list$`M-TS-1`$data)[1])
 #' @export
-calculate_durbin_watson_test <- function(df, targetcol){
+calculate_durbin_watson_test <- function(df, targetcol, na_option = "mean"){
   # If else clause to check the input
-  if (is.data.frame(df)) {
+  if (is.data.frame(df) & na_option %in% c("mean", "kalman") &
+      targetcol %in% colnames(df)) {
     df_colnames <- colnames(df)[which(colnames(df) != "date")]
     df <- df[,df_colnames]
     colnames(df)[which(colnames(df) == targetcol)] <- "target"
+
+    for(col in colnames(df)){
+      # Handle missing observations
+      if (length(na.omit(as.numeric(df[, col]))) !=
+          (length(as.numeric(df[, col])))) {
+        df[, col] <- predict_missing_observations(as.numeric(df[, col]),
+                                                  na_option = na_option)
+      }
+    }
 
     # Transform the df into detrended data
     transform_df <- df
@@ -621,10 +937,12 @@ calculate_durbin_watson_test <- function(df, targetcol){
       transform_df[col] <- deTREND
     }
     # Calculate DW on detrended df
-    dw <- durbinWatsonTest(lm(target ~ ., data = df))
+    dw <- car::durbinWatsonTest(lm(target ~ ., data = df))
     return(dw$dw)
   } else {
-    stop("A data.frame object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed! The targetcol has to be an
+         attribute of the inputed df!")
   }
 
 }
@@ -634,16 +952,27 @@ calculate_durbin_watson_test <- function(df, targetcol){
 #' This is a function to generate the percentage of the values in the 4
 #' quartiles of a time series object. As input is only required an object from
 #' the class time series. Otherwise the function returns an error message.
+#' Also, for \code{na_option} is only required the string 'mean' or'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param ts A time series object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @return The percentage of the values in the 4 quartiles of \code{ts}.
-#' If the input is not a ts, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_quartile_distribution(ts = datasets::BJsales)
 #' @export
-calculate_quartile_distribution <- function(ts){
+calculate_quartile_distribution <- function(ts, na_option = "mean"){
   # If else clause to check the input
-  if (is.ts(ts)) {
+  if (is.ts(ts) & na_option %in% c("mean", "kalman")) {
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
+
     observations <- calculate_observationnumber(ts)
     quartiles <- round(calculate_observationnumber(ts) / 4)
     distribution <- c()
@@ -657,7 +986,8 @@ calculate_quartile_distribution <- function(ts){
                            sum(abs(ts[((quartiles * 3) + 1):observations])))
     return(distribution / sum(abs(ts)))
   } else {
-    stop("A time series object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed!")
   }
 
 }
@@ -667,27 +997,48 @@ calculate_quartile_distribution <- function(ts){
 #' This is a function to generate the R2 of a data.frame object.
 #' As input is only required an object from the class data.frame.
 #' The data.frame object should represent an multivariate ts.
-#' Otherwise the function returns an error message.
+#' Otherwise the function returns an error message. Also, for
+#' \code{na_option} is only required the string 'mean' or 'kalman'
+#' allowed. This means, that all na values are either replaced by the mean,
+#' or kalman imputation of the ts.
+#' The standard value of \code{na_option} is 'mean'.
 #'
 #' @param df A data.frame object.
+#' @param na_option A string value containing either 'mean'
+#' or'kalman'; Standard values is 'mean'.
 #' @param targetcol A character containing a column name of the \code{df}.
 #' @return The R2 of \code{df}.
-#' If the input is not a data.frame, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_determination_coefficient(
 #' df = multi_ts_list$`M-TS-1`$data,
 #' targetcol = colnames(multi_ts_list$`M-TS-1`$data)[1])
 #' @export
-calculate_determination_coefficient <- function(df, targetcol){
+calculate_determination_coefficient <- function(df, targetcol,
+                                                na_option = "mean"){
   # If else clause to check the input
-  if (is.data.frame(df)) {
+  if (is.data.frame(df) & na_option %in% c("mean", "kalman") &
+      targetcol %in% colnames(df)) {
+
     df_colnames <- colnames(df)[which(colnames(df) != "date")]
     df <- df[,df_colnames]
     colnames(df)[which(colnames(df) == targetcol)] <- "target"
-    lm = lm(target ~ ., data = df)
+
+    for(col in colnames(df)){
+      # Handle missing observations
+      if (length(na.omit(as.numeric(df[, col]))) !=
+          (length(as.numeric(df[, col])))) {
+        df[, col] <- predict_missing_observations(as.numeric(df[, col]),
+                                                  na_option = na_option)
+      }
+    }
+
+    lm = stats::lm(target ~ ., data = df)
     return(summary(lm)$r.squared)
   } else {
-    stop("A data.frame object is required as input!")
+    stop("A time series object is required as input! For na_option
+         only 'mean' or 'kalman' is allowed! The targetcol has to be an
+         attribute of the inputed df!")
   }
 
 }
@@ -702,7 +1053,7 @@ calculate_determination_coefficient <- function(df, targetcol){
 #'
 #' @param df A data.frame object.
 #' @return The number of attributes of \code{df}.
-#' If the input is not a data.frame, an error message is returned.
+#' If the above input params are wrong, an error message is returned.
 #' @examples
 #' calculate_attributenumber(df = multi_ts_list$`M-TS-1`$data)
 #' @export

@@ -2,22 +2,29 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_sd}
 \alias{calculate_sd}
-\title{Generates the standard deviation of an ts object.}
+\title{Generates the standard deviation of a ts object.}
 \usage{
-calculate_sd(ts)
+calculate_sd(ts, na_option = "mean")
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
 }
 \value{
 The standard deviation of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This function generates the standard deviation of an time series object.
+This function generates the standard deviation of a time series object.
 As input is only required an object from the class time series.
-Otherwise the function returns an error message.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_sd(ts = tsobject)
+calculate_sd(ts = datasets::BJsales)
 }

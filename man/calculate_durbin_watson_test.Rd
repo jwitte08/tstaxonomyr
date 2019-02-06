@@ -2,26 +2,35 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_durbin_watson_test}
 \alias{calculate_durbin_watson_test}
-\title{Generates the autocorrelation measure of an data.frame object.}
+\title{Generates the autocorrelation measure of a data.frame object.}
 \usage{
-calculate_durbin_watson_test(df, targetcol)
+calculate_durbin_watson_test(df, targetcol, na_option = "mean")
 }
 \arguments{
 \item{df}{A data.frame object.}
 
-\item{targetcol}{A string containing a column name of the \code{df}.}
+\item{targetcol}{A character containing a column name of the \code{df}.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
 }
 \value{
 The autocorrelation measure of \code{df}.
-If the input is not a data.frame, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This function generates the autocorrelation measure of an data.frame object.
+This function generates the autocorrelation measure of a data.frame object.
 It is based on the durbin watson test. The test is based on detrended data.
 The data.frame object should represent an multivariate ts. As input is
 only required an object from the class data.frame.
-Otherwise the function returns an error message.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_durbin_watson_test(df = dataframe_object,targetcol = 'var1')
+calculate_durbin_watson_test(
+df = multi_ts_list$`M-TS-1`$data,
+targetcol = colnames(multi_ts_list$`M-TS-1`$data)[1])
 }

@@ -10,21 +10,31 @@
 #' \code{na_option} is only required the string 'mean' or'kalman'
 #' allowed. This means, that all na values are either replaced by the mean,
 #' or kalman imputation of the ts.
-#' The standard value of \code{na_option} is 'kalman'. The following 24
-#' features: "number_of_observations", "number_of_attributes",
+#' The standard value of \code{na_option} is 'mean'. The paramter
+#' \code{taxonomy_type} defines whether the overall 24 features or a ligther
+#' version of 15 features based on feature selection is applied. 'v1' the basic
+#' taxonomy contains the following features:"number_of_observations",
 #' "coefficient of determination", "durbin watson test", "mean", "periodicity",
 #' "chaos", "entropy", "selfsimilarity", "dynamic time warping (DTW) distance ",
 #' "percentage of turning points", "variance", "percentage of outliers",
 #' "percentage of step changes", "quartile distribition", "standard deviation",
 #' "percentage of peaks", "trend", "seasonality", "autocorrelation",
 #' "partial autocorrelation", "skewness", "kurtosis", "non linearity"
-#' are calculated, scaled and then assigned to the taxonomy values.
+#' "number_of_attributes". The ligther version 'v2' contains the following 15
+#' features: "coefficient of determination", "durbin watson test",
+#' "periodicity", "chaos", "entropy", "percentage of turning points",
+#' "percentage of outliers", "percentage of step changes",
+#' "quartile distribition", "percentage of peaks", "trend", "seasonality",
+#' "autocorrelation", "partial autocorrelation", "number_of_attributes".
 #'
 #'
 #' @param ts Either a vector, time series or data.frame object representing
 #' a time series is allowed.
 #' @param na_option A string value containing either 'mean'
-#' or'kalman'; Standard values is 'kalman'.
+#' or'kalman'; Standard values is 'mean'.
+#' @param taxonomy_type Either 'v1' or 'v2'. v1 uses the basic time series
+#' taxonomy containing the overall 24 features and v2 the feature selected ts
+#' taxonomy containing 15 features. Standard values is 'v1'.
 #' @return The final list, containing all scaled feature factor values.
 #' If the input \code{ts} is not a vector, ts or data.frame object
 #' an error message is returned.
@@ -36,25 +46,45 @@
 #' classify_ts(ts = df, na_option = "kalman")
 #' classify_ts(ts = ts, na_option = "mean")
 #' @export
-classify_ts <- function(ts, na_option = "kalman"){
+classify_ts <- function(ts, na_option = "mean", taxonomy_type = "v1"){
 
   # Check input data and transform it into ts object ---------------------------
+
+  if (!taxonomy_type %in% c("v1","v2")){
+    stop("As 'taxonomy_type' is either 'v1' or 'v2' allowed")
+  }
 
   list_ts <- list()
   # If else clause to check the 'ts' input parameter
   if (is.ts(ts)) {
   # If ts is a ts object, add it to the list_ts list
+    if (length(unique(na.omit(ts))) < 2 ) {
+      stop("the vector requires more than one unique value")
+    }
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
+    }
     list_ts[["ts"]] <- ts
     quartile_index <- c(1)
 
   } else if (is.vector(ts)) {
   # If ts is a vector object, transfrom it to ts & add it to the list_ts list
     # character and factor cols are transformed to numeric cols
+    if ((is.Date(ts) || is.POSIXt(ts)) &
+        length(unique(na.omit(ts))) < 2 ) {
+      stop("the vector requires class numeric or character and
+           more than one unique value")
+    }
     if (is.character(ts) || is.factor(ts)) {
       ts = as.factor(ts)
       ts = as.numeric(ts)
     } else {
       quartile_index <- c(1)
+    }
+    # Handle missing observations
+    if (length(na.omit(as.numeric(ts))) != (length(as.numeric(ts)))) {
+      ts <- predict_missing_observations(ts, na_option = na_option)
     }
     # Find out the frequency of the data
     freq <- get_ts_frequency(ts)
@@ -79,6 +109,10 @@ classify_ts <- function(ts, na_option = "kalman"){
           quartile_index <- append(quartile_index, quartile_index_count)
           quartile_index_count <- quartile_index_count + 1
         }
+        # Handle missing observations
+        if (length(na.omit(as.numeric(ts[,col]))) != (length(as.numeric(ts[,col])))) {
+          ts[,col] <- predict_missing_observations(ts[,col], na_option = na_option)
+        }
         # Find out the frequency of the data
         freq <- get_ts_frequency(ts[,col])
         # Transform tsinto a ts object
@@ -92,63 +126,32 @@ classify_ts <- function(ts, na_option = "kalman"){
               vector, ts or data.frame")
   }
 
-  # If else clause to check the 'na_option' input parameter
-    if (na_option == "mean") {
-      count_list_ts <- 1
-      for (elem in list_ts) {
-        if (length(na.omit(as.numeric(elem))) != length(elem)) {
-          # Replace all NA by mean
-          adjusted_ts <- na.mean(elem, option = "mean")
-          list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
-        }
-        count_list_ts <- count_list_ts + 1
-      }
-    } else if (na_option == "kalman") {
-      count_list_ts <- 1
-      for(elem in list_ts){
-        if (length(na.omit(as.numeric(elem))) != (length(elem))) {
-          if ((length(elem) - length(na.omit(as.numeric(elem)))) >= 3){
-            # Replace all NA by kalman
-            adjusted_ts <- na.kalman(elem)
-            list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
-          } else {
-            print("For kalman imputation are at least 3 NA observations
-                  + required, thus the simple 'mean' imputation is used")
-            # Replace all NA by mean
-            adjusted_ts <- na.mean(elem, option = "mean")
-            list_ts[[names(list_ts)[count_list_ts]]] <- adjusted_ts
-          }
-        }
-        count_list_ts <- count_list_ts + 1
-      }
-    } else {
-      stop("ERROR: input parameter 'na_option' has to contain either
-           'mean' or 'kalman'")
-    }
 
-    for (elem in list_ts) {
-      if (length(elem) < 10) {
-        stop("ERROR: the inputed ts has to have a length at least of 10")
-      }
+  for (elem in list_ts) {
+    if (length(elem) < 10) {
+      stop("ERROR: the inputed ts has to have a length at least of 10")
     }
+  }
 
-    if(length(list_ts) == 0) {
-      stop("ERROR: the ts data is not useful, bad structure and types")
-    }
+  if(length(list_ts) == 0) {
+    stop("ERROR: the ts data is not useful, bad structure and types")
+  }
 
   # Generate the feature values and scale [0,1] them ---------------------------
 
   # Vector to store the feature results
   ts_vector <- c()
 
-  # Feature NumberOfObservations
-  number_of_observations <-
-    calculate_observationnumber(list_ts[[names(list_ts)[1]]])
-  # Scaling
-  number_of_observations <- scale_feature(x = number_of_observations
-                                          , min = 13, max = 1048575)
-  # Add scaled result to the ts_vector
-  ts_vector <- append(ts_vector, number_of_observations)
+  if (taxonomy_type == "v1") {
+    # Feature NumberOfObservations
+    number_of_observations <-
+      calculate_observationnumber(list_ts[[names(list_ts)[1]]])
+    # Scaling
+    number_of_observations <- scale_feature(x = number_of_observations
+                                            , min = 13, max = 52584)
+    # Add scaled result to the ts_vector
+    ts_vector <- append(ts_vector, number_of_observations)
+  }
 
   # Feature NumberOfAttributes
   if (is.data.frame(ts)) {
@@ -158,6 +161,7 @@ classify_ts <- function(ts, na_option = "kalman"){
   }
   # Add result to vector
   ts_vector <- append(ts_vector, number_of_attributes)
+
 
   # Feature R2 fits only for multivaritae ts, else the value is -1
   if (number_of_attributes > 1) {
@@ -184,29 +188,46 @@ classify_ts <- function(ts, na_option = "kalman"){
   # Add result to the ts_vector
   ts_vector <- append(ts_vector, dw)
 
-  # Assigning the feature names to the above generated values
-  names(ts_vector) <- c("number_of_observations", "number_of_attributes"
-                        , "r2", "dw")
+  if (taxonomy_type == "v1") {
+    # Assigning the feature names to the above generated values
+    names(ts_vector) <- c("number_of_observations", "number_of_attributes"
+                          , "r2", "dw")
 
+    # Generate a feature matrix to store the results for the following for loop
+    temp_taxonomy <- matrix(NA, nrow = length(list_ts), ncol = 35)
+    colnames(temp_taxonomy) <- c("feature_mean", "feature_periodicity",
+                                 "feature_chaos", "feature_entropy",
+                                 "feature_selfsimilarity", "feature_dtw1",
+                                 "feature_dtw2", "feature_dtw3", "feature_dtw4",
+                                 "feature_dtw5", "feature_dtw6", "feature_dtw7",
+                                 "feature_dtw8", "feature_dtw9", "feature_dtw10",
+                                 "feature_dtw11", "feature_dtw12",
+                                 "feature_dtw13", "feature_tp",
+                                 "feature_variance",
+                                 "feature_outlier", "feature_stepchange",
+                                 "QUARTILE1", "QUARTILE2", "QUARTILE3",
+                                 "QUARTILE4", "feature_sd", "feature_peak",
+                                 "feature_trend", "feature_season",
+                                 "feature_autocor", "feature_partial_autocor",
+                                 "feature_skewness", "feature_kurtosis",
+                                 "feature_non_linearity")
+  } else {
+    # Assigning the feature names to the above generated values
+    names(ts_vector) <- c("number_of_attributes"
+                          , "r2", "dw")
 
-  # Generate a feature matrix to store the results for the following for loop
-  temp_taxonomy <- matrix(NA, nrow = length(list_ts), ncol = 35)
-  colnames(temp_taxonomy) <- c("feature_mean", "feature_periodicity",
-                               "feature_chaos", "feature_entropy",
-                               "feature_selfsimilarity", "feature_dtw1",
-                               "feature_dtw2", "feature_dtw3", "feature_dtw4",
-                               "feature_dtw5", "feature_dtw6", "feature_dtw7",
-                               "feature_dtw8", "feature_dtw9", "feature_dtw10",
-                               "feature_dtw11", "feature_dtw12",
-                               "feature_dtw13", "feature_tp",
-                               "feature_variance",
-                               "feature_outlier", "feature_stepchange",
-                               "QUARTILE1", "QUARTILE2", "QUARTILE3",
-                               "QUARTILE4", "feature_sd", "feature_peak",
-                               "feature_trend", "feature_season",
-                               "feature_autocor", "feature_partial_autocor",
-                               "feature_skewness", "feature_kurtosis",
-                               "feature_non_linearity")
+    # Generate a feature matrix to store the results for the following for loop
+    temp_taxonomy <- matrix(NA, nrow = length(list_ts), ncol = 15)
+    colnames(temp_taxonomy) <- c("feature_periodicity",
+                                 "feature_chaos", "feature_entropy",
+                                 "feature_tp",
+                                 "feature_outlier", "feature_stepchange",
+                                 "QUARTILE1", "QUARTILE2", "QUARTILE3",
+                                 "QUARTILE4", "feature_peak",
+                                 "feature_trend", "feature_season",
+                                 "feature_autocor", "feature_partial_autocor")
+  }
+
   # Count for the following for-loop
   ts_count <- 1
 
@@ -218,12 +239,15 @@ classify_ts <- function(ts, na_option = "kalman"){
 
     # The following features are generated on raw data -----------------------
 
-    # Feature mean
-    feature_mean <- calculate_mean(elem)
-    # Scaling
-    feature_mean <- scale_feature(feature_mean, min = 0.08, max = 0.81)
-    # Add scaled result to the temp_vector
-    temp_vector <- append(temp_vector, feature_mean)
+
+    if (taxonomy_type == "v1") {
+      # Feature mean
+      feature_mean <- calculate_mean(elem)
+      # Scaling
+      feature_mean <- scale_feature(feature_mean, min = 0.08, max = 0.73)
+      # Add scaled result to the temp_vector
+      temp_vector <- append(temp_vector, feature_mean)
+    }
 
     # Feature periodicity
     feature_periodicity <- calculate_periodicity(elem)
@@ -231,8 +255,6 @@ classify_ts <- function(ts, na_option = "kalman"){
     feature_periodicity <- scale_feature(feature_periodicity, min = 0, max = 1)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_periodicity)
-
-    print(feature_periodicity)
 
     # Feature chaos
     feature_chaos <- calculate_chaos(elem)
@@ -244,37 +266,40 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Feature entropy
     feature_entropy <- calculate_entropy(elem)
     # Scaling
-    feature_entropy <- scale_feature(feature_entropy, min = -0.08, max = 1.13)
+    feature_entropy <- scale_feature(feature_entropy, min = -0.08, max = 0.98)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_entropy)
 
-    # Feature self-similarity
-    feature_selfsimilarity <- calculate_selfsimilarity(elem)
-    # Scaling
-    feature_selfsimilarity <- scale_feature(feature_selfsimilarity
-                                            , min = 0.5, max = 1)
-    # Add scaled result to the temp_vector
-    temp_vector <- append(temp_vector, feature_selfsimilarity)
-
-    # Feature dtw
-    feature_dtw <- calculate_dtw_blockdistance(elem)
-    # Scaling
-    tmp_feature_dtw <- c()
-    tmp_min = c(3.193370e+05, 7.463153e+06, 7.644194e+08, 1.150776e+07,
-                1.108854e+07, 5.563533e+06, 3.239978e+07, 1.930227e+07,
-                2.565264e+07, 2.743419e+07, 5.476233e+05, 8.36043e+11,
-                4.120751e+07)
-    tmp_max = c(2.667504e+11, 2.086075e+11, 2.313187e+12, 3.307952e+11
-                , 2.037851e+11, 1.425399e+11, 2.037255e+11, 1.944826e+11
-                , 1.944998e+11, 1.093261e+12, 1.077044e+12,  3.479975e+12
-                , 4.254808e+12)
-    for(i in 1:13){
-      tmp_feature_dtw <- append(tmp_feature_dtw,scale_feature(feature_dtw[i]
-                                        , min = tmp_min[i], max = tmp_max[i]))
+    if (taxonomy_type == "v1") {
+      # Feature self-similarity
+      feature_selfsimilarity <- calculate_selfsimilarity(elem)
+      # Scaling
+      feature_selfsimilarity <- scale_feature(feature_selfsimilarity
+                                              , min = 0.5, max = 1)
+      # Add scaled result to the temp_vector
+      temp_vector <- append(temp_vector, feature_selfsimilarity)
     }
-    feature_dtw <- tmp_feature_dtw
-    # Add scaled result to the temp_vector
-    temp_vector <- append(temp_vector, feature_dtw)
+
+    if (taxonomy_type == "v1") {
+      # Feature dtw
+      feature_dtw <- calculate_dtw_blockdistance(elem)
+      # Scaling
+      tmp_feature_dtw <- c()
+      tmp_min = c(2876.91, 113078.1, 2442235, 117426.2, 246412, 123634.1,
+                  719995.2, 428939.3, 570058.6, 78383.39, 1216.94, 927905600,
+                  22944.05)
+      tmp_max = c(2403157000, 3160719000, 7390375000, 3375461000
+                  , 4528558000, 3167553000, 4527233000, 4321836000
+                  , 4322218000, 3123604000, 2393432000,  3862347000
+                  , 2369047000)
+      for(i in 1:13){
+        tmp_feature_dtw <- append(tmp_feature_dtw,scale_feature(feature_dtw[i]
+                           , min = tmp_min[i], max = tmp_max[i]))
+      }
+      feature_dtw <- tmp_feature_dtw
+      # Add scaled result to the temp_vector
+      temp_vector <- append(temp_vector, feature_dtw)
+    }
 
     # Feature turning points
     if(length(unique(elem)) > 2){
@@ -287,31 +312,34 @@ classify_ts <- function(ts, na_option = "kalman"){
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_tp)
 
-    # Feature variance
-    feature_variance <- calculate_variance(elem)
-    # Scaling
-    feature_variance <- scale_feature(feature_variance, min = 0.48
-                                      , max = 3.473053e+13)
-    # Add scaled result to the temp_vector
-    temp_vector <- append(temp_vector, feature_variance)
+    if (taxonomy_type == "v1") {
+      # Feature variance
+      feature_variance <- calculate_variance(elem)
+      # Scaling
+      feature_variance <- scale_feature(feature_variance, min = 0.03
+                                        , max = 4.775906e+14)
+      # Add scaled result to the temp_vector
+      temp_vector <- append(temp_vector, feature_variance)
+    }
+
 
     # Feature outliers
     feature_outlier <- calculate_outlier_percentage(elem)
     # Scaling
-    feature_outlier <- scale_feature(feature_outlier, min = 0, max = 0.13)
+    feature_outlier <- scale_feature(feature_outlier, min = 0, max = 0.14)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_outlier)
 
     # Feature step changes
     feature_stepchange <- calculate_stepchange_percentage(elem)
     # Scaling
-    feature_stepchange <- scale_feature(feature_stepchange, min = 0, max = 0.88)
+    feature_stepchange <- scale_feature(feature_stepchange, min = 0, max = 0.85)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_stepchange)
 
     # Feature quartile distribution
     if (length(quartile_index) == 0) {
-      feature_quartiles <- 0
+      feature_quartiles <- c(-1,-1,-1,-1)
     } else {
       # It is calculated only for numeric time series!
       if(ts_count %in% quartile_index){
@@ -320,8 +348,8 @@ classify_ts <- function(ts, na_option = "kalman"){
     }
     # Scaling
     tmp_quartiles <- c()
-    tmp_min <- c(0, 0, 0, 0)
-    tmp_max <- c(0.58, 0.49, 0.56, 0.68)
+    tmp_min <- c(0.02, 0.03, 0.05, 0.04)
+    tmp_max <- c(0.75, 0.45, 0.56, 0.82)
     for(i in 1:4){
       tmp_quartiles <- append(tmp_quartiles,scale_feature(feature_quartiles[i]
                                         , min = tmp_min[i], max = tmp_max[i]))
@@ -337,14 +365,15 @@ classify_ts <- function(ts, na_option = "kalman"){
 
     # The next features are generated on detrended data -----------------------
 
-    # Feature sd
-    feature_sd <- calculate_sd(detrended_ts)
-    # Scaling
-    feature_sd <- scale_feature(feature_sd, min = 0, max = 765707700)
-    # Add scaled result to the temp_vector
-    temp_vector <- append(temp_vector, feature_sd)
+    if (taxonomy_type == "v1") {
+      # Feature sd
+      feature_sd <- calculate_sd(detrended_ts)
+      # Scaling
+      feature_sd <- scale_feature(feature_sd, min = 0, max = 26217230000)
+      # Add scaled result to the temp_vector
+      temp_vector <- append(temp_vector, feature_sd)
+    }
 
-    print("sd")
 
     # Feature peaks
     feature_peak <- calculate_peak_percentage(detrended_ts)
@@ -352,9 +381,6 @@ classify_ts <- function(ts, na_option = "kalman"){
     feature_peak <- scale_feature(feature_peak, min = 0, max = 0.44)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_peak)
-
-    print("peaks")
-
 
     # The next features are generated on detrended_and_deseason_ts data
     # but they require a ts object and transfrom it within the fucntion ------
@@ -365,8 +391,6 @@ classify_ts <- function(ts, na_option = "kalman"){
     feature_trend <- scale_feature(feature_trend, min = 0, max = 1)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_trend)
-
-
 
     # Feature seasonality
     feature_season <- calculate_seasonality(elem)
@@ -389,7 +413,7 @@ classify_ts <- function(ts, na_option = "kalman"){
       feature_autocor <- feature_autocor + calculate_autocorrelation(data)
     }
     # Scaling
-    feature_autocor <- scale_feature(feature_autocor/3, min = -0.04, max = 0.64)
+    feature_autocor <- scale_feature(feature_autocor/3, min = -0.01, max = 0.65)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_autocor)
 
@@ -401,46 +425,46 @@ classify_ts <- function(ts, na_option = "kalman"){
     }
     # Scaling
     feature_partial_autocor <- scale_feature(feature_partial_autocor/3
-                                             , min = -0.59, max = 0.15)
+                                             , min = -0.57, max = 0.15)
     # Add scaled result to the temp_vector
     temp_vector <- append(temp_vector, feature_partial_autocor)
 
-    print("autocorrelation")
+    if (taxonomy_type == "v1") {
+      # Feature skewness
+      feature_skewness <- 0
+      for(data in decomp_ts_list){
+        feature_skewness <- feature_skewness + calculate_skewness(data)
+      }
+      # Scaling
+      feature_skewness <- scale_feature(feature_skewness/3
+                                        , min = -1.54, max = 1.29)
+      # Add scaled result to the temp_vector
+      temp_vector <- append(temp_vector, feature_skewness)
 
+      # Feature kurtosis
+      feature_kurtosis <- 0
+      for(data in decomp_ts_list){
+        feature_kurtosis <- feature_kurtosis + calculate_kurtosis(data)
+      }
+      # Scaling
+      feature_kurtosis = scale_feature(feature_kurtosis/3
+                                       , min = -1.23, max = 25.77)
+      # Add scaled result to the temp_vector
+      temp_vector <- append(temp_vector, feature_kurtosis)
 
-    # Feature skewness
-    feature_skewness <- 0
-    for(data in decomp_ts_list){
-      feature_skewness <- feature_skewness + calculate_skewness(data)
+      # Feature non linearity
+      feature_non_linearity <- 0
+      for(data in decomp_ts_list){
+        feature_non_linearity <- feature_non_linearity +
+          calculate_non_linearity(data)
+      }
+      # Scaling
+      feature_non_linearity <- scale_feature(feature_non_linearity/3,
+                                             min = 0.22, max = 160.82)
+      # Add scaled result to the temp_vector
+      temp_vector <- append(temp_vector, feature_non_linearity)
     }
-    # Scaling
-    feature_skewness <- scale_feature(feature_skewness/3
-                                      , min = -1.54, max = 1.31)
-    # Add scaled result to the temp_vector
-    temp_vector <- append(temp_vector, feature_skewness)
 
-    # Feature kurtosis
-    feature_kurtosis <- 0
-    for(data in decomp_ts_list){
-      feature_kurtosis <- feature_kurtosis + calculate_kurtosis(data)
-    }
-    # Scaling
-    feature_kurtosis = scale_feature(feature_kurtosis/3
-                                     , min = -1.38, max = 25.77)
-    # Add scaled result to the temp_vector
-    temp_vector <- append(temp_vector, feature_kurtosis)
-
-    # Feature non linearity
-    feature_non_linearity <- 0
-    for(data in decomp_ts_list){
-      feature_non_linearity <- feature_non_linearity +
-                                  calculate_non_linearity(data)
-    }
-    # Scaling
-    feature_non_linearity <- scale_feature(feature_non_linearity/3,
-                                           min = 0.08, max = 157.55)
-    # Add scaled result to the temp_vector
-    temp_vector <- append(temp_vector, feature_non_linearity)
 
     # Add the feature vector to the appropriate row of the temp_taxonomy matrix
     temp_taxonomy[ts_count,] <- temp_vector
@@ -465,42 +489,44 @@ classify_ts <- function(ts, na_option = "kalman"){
   # final list with all taxonomy values (factor values)
   ts_taxonomy_list <- list()
 
-  # Feature skewness
-  factor_levels <- c("very low", "low", "medium", "high", "very high")
-  if (ts_taxonomy[["feature_skewness"]] > 0.8) {
-    ts_taxonomy_list[["Skewness"]] <-
-      factor("very high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_skewness"]]  > 0.6) {
-    ts_taxonomy_list[["Skewness"]] <-
-      factor("high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_skewness"]]  > 0.4) {
-    ts_taxonomy_list[["Skewness"]] <-
-      factor("medium", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_skewness"]]  > 0.2) {
-    ts_taxonomy_list[["Skewness"]] <-
-      factor("low", levels = factor_levels)
-  } else {
-    ts_taxonomy_list[["Skewness"]] <-
-      factor("very low", levels = factor_levels)
-  }
+  if (taxonomy_type == "v1") {
+    # Feature skewness
+    factor_levels <- c("very low", "low", "medium", "high", "very high")
+    if (ts_taxonomy[["feature_skewness"]] > 0.8) {
+      ts_taxonomy_list[["Skewness"]] <-
+        factor("very high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_skewness"]]  > 0.6) {
+      ts_taxonomy_list[["Skewness"]] <-
+        factor("high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_skewness"]]  > 0.4) {
+      ts_taxonomy_list[["Skewness"]] <-
+        factor("medium", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_skewness"]]  > 0.2) {
+      ts_taxonomy_list[["Skewness"]] <-
+        factor("low", levels = factor_levels)
+    } else {
+      ts_taxonomy_list[["Skewness"]] <-
+        factor("very low", levels = factor_levels)
+    }
 
-  # Feature kurtosis
-  factor_levels = c("very low", "low", "medium", "high", "very high")
-  if (ts_taxonomy[["feature_kurtosis"]] > 0.8) {
-    ts_taxonomy_list[["Kurtosis"]] <-
-      factor("very high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_kurtosis"]]  > 0.6) {
-    ts_taxonomy_list[["Kurtosis"]] <-
-      factor("high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_kurtosis"]]  > 0.4) {
-    ts_taxonomy_list[["Kurtosis"]] <-
-      factor("medium", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_kurtosis"]]  > 0.2) {
-    ts_taxonomy_list[["Kurtosis"]] <-
-      factor("low", levels = factor_levels)
-  } else {
-    ts_taxonomy_list[["Kurtosis"]] <-
-      factor("very low", levels = factor_levels)
+    # Feature kurtosis
+    factor_levels = c("very low", "low", "medium", "high", "very high")
+    if (ts_taxonomy[["feature_kurtosis"]] > 0.8) {
+      ts_taxonomy_list[["Kurtosis"]] <-
+        factor("very high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_kurtosis"]]  > 0.6) {
+      ts_taxonomy_list[["Kurtosis"]] <-
+        factor("high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_kurtosis"]]  > 0.4) {
+      ts_taxonomy_list[["Kurtosis"]] <-
+        factor("medium", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_kurtosis"]]  > 0.2) {
+      ts_taxonomy_list[["Kurtosis"]] <-
+        factor("low", levels = factor_levels)
+    } else {
+      ts_taxonomy_list[["Kurtosis"]] <-
+        factor("very low", levels = factor_levels)
+    }
   }
 
   # Feature trend
@@ -541,81 +567,85 @@ classify_ts <- function(ts, na_option = "kalman"){
       factor("very low", levels = factor_levels)
   }
 
-  # Feature mean
-  factor_levels <- c("very low", "low", "medium", "high","very high")
-  if (ts_taxonomy[["feature_mean"]] > 0.8) {
-    ts_taxonomy_list[["Mean"]] <-
-      factor("very high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_mean"]]  > 0.6) {
-    ts_taxonomy_list[["Mean"]] <-
-      factor("high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_mean"]]  > 0.4) {
-    ts_taxonomy_list[["Mean"]] <-
-      factor("medium", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_mean"]]  > 0.2) {
-    ts_taxonomy_list[["Mean"]] <-
-      factor("low", levels = factor_levels)
-  } else {
-    ts_taxonomy_list[["Mean"]] <-
-      factor("very low", levels = factor_levels)
+  if (taxonomy_type == "v1") {
+    # Feature mean
+    factor_levels <- c("very low", "low", "medium", "high","very high")
+    if (ts_taxonomy[["feature_mean"]] > 0.8) {
+      ts_taxonomy_list[["Mean"]] <-
+        factor("very high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_mean"]]  > 0.6) {
+      ts_taxonomy_list[["Mean"]] <-
+        factor("high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_mean"]]  > 0.4) {
+      ts_taxonomy_list[["Mean"]] <-
+        factor("medium", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_mean"]]  > 0.2) {
+      ts_taxonomy_list[["Mean"]] <-
+        factor("low", levels = factor_levels)
+    } else {
+      ts_taxonomy_list[["Mean"]] <-
+        factor("very low", levels = factor_levels)
+    }
+
+    #Feature sd
+    factor_levels <- c("very low", "low", "medium", "high", "very high")
+    if (ts_taxonomy[["feature_sd"]] > 0.8) {
+      ts_taxonomy_list[["StandardDeviation"]] <-
+        factor("very high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_sd"]]  > 0.6){
+      ts_taxonomy_list[["StandardDeviation"]] <-
+        factor("high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_sd"]]  > 0.4){
+      ts_taxonomy_list[["StandardDeviation"]] <-
+        factor("medium", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_sd"]]  > 0.2){
+      ts_taxonomy_list[["StandardDeviation"]] <-
+        factor("low", levels = factor_levels)
+    } else {
+      ts_taxonomy_list[["StandardDeviation"]] <-
+        factor("very low", levels = factor_levels)
+    }
+
+    # Feature number of observations
+    factor_levels <- c("very short", "short", "medium", "long", "very long")
+    if (ts_taxonomy[["number_of_observations"]] > 0.8) {
+      ts_taxonomy_list[["NumberOfObservations"]] <-
+        factor("very long", levels = factor_levels)
+    } else if (ts_taxonomy[["number_of_observations"]]  > 0.6) {
+      ts_taxonomy_list[["NumberOfObservations"]] <-
+        factor("long", levels = factor_levels)
+    } else if (ts_taxonomy[["number_of_observations"]]  > 0.4) {
+      ts_taxonomy_list[["NumberOfObservations"]] <-
+        factor("medium", levels = factor_levels)
+    } else if (ts_taxonomy[["number_of_observations"]]  > 0.2) {
+      ts_taxonomy_list[["NumberOfObservations"]] <-
+        factor("short", levels = factor_levels)
+    } else {
+      ts_taxonomy_list[["NumberOfObservations"]] <-
+        factor("very short", levels = factor_levels)
+    }
+
+    #Feature non linearity
+    factor_levels <- c("very low", "low", "medium", "high","very high")
+    if (ts_taxonomy[["feature_non_linearity"]] > 0.8) {
+      ts_taxonomy_list[["NonLinearity"]] <-
+        factor("very high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_non_linearity"]]  > 0.6) {
+      ts_taxonomy_list[["NonLinearity"]] <-
+        factor("high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_non_linearity"]]  > 0.4) {
+      ts_taxonomy_list[["NonLinearity"]] <-
+        factor("medium", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_non_linearity"]]  > 0.2) {
+      ts_taxonomy_list[["NonLinearity"]] <-
+        factor("low", levels = factor_levels)
+    } else {
+      ts_taxonomy_list[["NonLinearity"]] <-
+        factor("very low", levels = factor_levels)
+    }
+
   }
 
-  #Feature sd
-  factor_levels <- c("very low", "low", "medium", "high", "very high")
-  if (ts_taxonomy[["feature_sd"]] > 0.8) {
-    ts_taxonomy_list[["StandardDeviation"]] <-
-      factor("very high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_sd"]]  > 0.6){
-    ts_taxonomy_list[["StandardDeviation"]] <-
-      factor("high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_sd"]]  > 0.4){
-    ts_taxonomy_list[["StandardDeviation"]] <-
-      factor("medium", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_sd"]]  > 0.2){
-    ts_taxonomy_list[["StandardDeviation"]] <-
-      factor("low", levels = factor_levels)
-  } else {
-    ts_taxonomy_list[["StandardDeviation"]] <-
-      factor("very low", levels = factor_levels)
-  }
-
-  # Feature number of observations
-  factor_levels <- c("very short", "short", "medium", "long", "very long")
-  if (ts_taxonomy[["number_of_observations"]] > 0.8) {
-    ts_taxonomy_list[["NumberOfObservations"]] <-
-      factor("very long", levels = factor_levels)
-  } else if (ts_taxonomy[["number_of_observations"]]  > 0.6) {
-    ts_taxonomy_list[["NumberOfObservations"]] <-
-      factor("long", levels = factor_levels)
-  } else if (ts_taxonomy[["number_of_observations"]]  > 0.4) {
-    ts_taxonomy_list[["NumberOfObservations"]] <-
-      factor("medium", levels = factor_levels)
-  } else if (ts_taxonomy[["number_of_observations"]]  > 0.2) {
-    ts_taxonomy_list[["NumberOfObservations"]] <-
-      factor("short", levels = factor_levels)
-  } else {
-    ts_taxonomy_list[["NumberOfObservations"]] <-
-      factor("very short", levels = factor_levels)
-  }
-
-  #Feature non linearity
-  factor_levels <- c("very low", "low", "medium", "high","very high")
-  if (ts_taxonomy[["feature_non_linearity"]] > 0.8) {
-    ts_taxonomy_list[["NonLinearity"]] <-
-      factor("very high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_non_linearity"]]  > 0.6) {
-    ts_taxonomy_list[["NonLinearity"]] <-
-      factor("high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_non_linearity"]]  > 0.4) {
-    ts_taxonomy_list[["NonLinearity"]] <-
-      factor("medium", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_non_linearity"]]  > 0.2) {
-    ts_taxonomy_list[["NonLinearity"]] <-
-      factor("low", levels = factor_levels)
-  } else {
-    ts_taxonomy_list[["NonLinearity"]] <-
-      factor("very low", levels = factor_levels)
-  }
 
   # Feature seasonality
   factor_levels <- c("none seasonality","very low", "low", "medium",
@@ -701,134 +731,138 @@ classify_ts <- function(ts, na_option = "kalman"){
       factor("very low", levels = factor_levels)
   }
 
-  # Feature selfsimilarity
-  factor_levels <- c("very low", "low", "medium", "high","very high")
-  if (ts_taxonomy[["feature_selfsimilarity"]] > 0.8) {
-    ts_taxonomy_list[["SelfSimilarity"]] <-
-      factor("very high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_selfsimilarity"]]  > 0.6) {
-    ts_taxonomy_list[["SelfSimilarity"]] <-
-      factor("high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_selfsimilarity"]]  > 0.4) {
-    ts_taxonomy_list[["SelfSimilarity"]] <-
-      factor("medium", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_selfsimilarity"]]  > 0.2) {
-    ts_taxonomy_list[["SelfSimilarity"]] <-
-      factor("low", levels = factor_levels)
-  } else {
-    ts_taxonomy_list[["SelfSimilarity"]] <-
-      factor("very low", levels = factor_levels)
+  if (taxonomy_type == "v1") {
+    # Feature selfsimilarity
+    factor_levels <- c("very low", "low", "medium", "high","very high")
+    if (ts_taxonomy[["feature_selfsimilarity"]] > 0.8) {
+      ts_taxonomy_list[["SelfSimilarity"]] <-
+        factor("very high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_selfsimilarity"]]  > 0.6) {
+      ts_taxonomy_list[["SelfSimilarity"]] <-
+        factor("high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_selfsimilarity"]]  > 0.4) {
+      ts_taxonomy_list[["SelfSimilarity"]] <-
+        factor("medium", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_selfsimilarity"]]  > 0.2) {
+      ts_taxonomy_list[["SelfSimilarity"]] <-
+        factor("low", levels = factor_levels)
+    } else {
+      ts_taxonomy_list[["SelfSimilarity"]] <-
+        factor("very low", levels = factor_levels)
+    }
+
+    # Feature dtw distance
+    feature_dtwvector <- c()
+    factor_levels <- c("Block1 high", "Block1 medium", "Block1 low",
+                       "Block2 high", "Block2 medium", "Block2 low",
+                       "Block3 high", "Block3 medium", "Block3 low",
+                       "Block4 high", "Block4 medium", "Block4 low",
+                       "Block5 high", "Block5 medium", "Block5 low",
+                       "Block6 high", "Block6 medium", "Block6 low",
+                       "Block7 high", "Block7 medium", "Block7 low",
+                       "Block8 high", "Block8 medium", "Block8 low",
+                       "Block9 high", "Block9 medium", "Block9 low",
+                       "Block10 high", "Block10 medium", "Block10 low",
+                       "Block11 high", "Block11 medium", "Block11 low",
+                       "Block12 high", "Block12 medium", "Block12 low",
+                       "Block13 high", "Block13 medium", "Block13 low")
+    if (ts_taxonomy[["feature_dtw1"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block1 high")
+    } else if (ts_taxonomy[["feature_dtw1"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block1 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block1 low")
+    }
+    if(ts_taxonomy[["feature_dtw2"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block2 high")
+    } else if (ts_taxonomy[["feature_dtw2"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block2 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block2 low")
+    }
+    if(ts_taxonomy[["feature_dtw3"]] > 0.66){
+      feature_dtwvector <- append(feature_dtwvector, "Block3 high")
+    } else if (ts_taxonomy[["feature_dtw3"]]  > 0.33){
+      feature_dtwvector <- append(feature_dtwvector, "Block3 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block3 low")
+    }
+    if (ts_taxonomy[["feature_dtw4"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block4 high")
+    } else if (ts_taxonomy[["feature_dtw4"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block4 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block4 low")
+    }
+    if (ts_taxonomy[["feature_dtw5"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block5 high")
+    } else if (ts_taxonomy[["feature_dtw5"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block5 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block5 low")
+    }
+    if (ts_taxonomy[["feature_dtw6"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block6 high")
+    } else if (ts_taxonomy[["feature_dtw6"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block6 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block6 low")
+    }
+    if (ts_taxonomy[["feature_dtw7"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block7 high")
+    } else if (ts_taxonomy[["feature_dtw7"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block7 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block7 low")
+    }
+    if (ts_taxonomy[["feature_dtw8"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block8 high")
+    } else if (ts_taxonomy[["feature_dtw8"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block8 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block8 low")
+    }
+    if (ts_taxonomy[["feature_dtw9"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block9 high")
+    } else if (ts_taxonomy[["feature_dtw9"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block9 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block9 low")
+    }
+    if (ts_taxonomy[["feature_dtw10"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block10 high")
+    } else if (ts_taxonomy[["feature_dtw10"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block10 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block10 low")
+    }
+    if (ts_taxonomy[["feature_dtw11"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block11 high")
+    } else if (ts_taxonomy[["feature_dtw10"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block11 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block11 low")
+    }
+    if (ts_taxonomy[["feature_dtw12"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block12 high")
+    } else if (ts_taxonomy[["feature_dtw10"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block12 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block12 low")
+    }
+    if (ts_taxonomy[["feature_dtw13"]] > 0.66) {
+      feature_dtwvector <- append(feature_dtwvector, "Block13 high")
+    } else if (ts_taxonomy[["feature_dtw10"]]  > 0.33) {
+      feature_dtwvector <- append(feature_dtwvector, "Block13 medium")
+    } else {
+      feature_dtwvector <- append(feature_dtwvector, "Block13 low")
+    }
+    # Final feature_dtw factor
+    ts_taxonomy_list[["feature_dtwdistance"]] <-
+      factor(x = feature_dtwvector, levels = factor_levels)
+
   }
 
-  # Feature dtw distance
-  feature_dtwvector <- c()
-  factor_levels <- c("Block1 high", "Block1 medium", "Block1 low",
-                     "Block2 high", "Block2 medium", "Block2 low",
-                     "Block3 high", "Block3 medium", "Block3 low",
-                     "Block4 high", "Block4 medium", "Block4 low",
-                     "Block5 high", "Block5 medium", "Block5 low",
-                     "Block6 high", "Block6 medium", "Block6 low",
-                     "Block7 high", "Block7 medium", "Block7 low",
-                     "Block8 high", "Block8 medium", "Block8 low",
-                     "Block9 high", "Block9 medium", "Block9 low",
-                     "Block10 high", "Block10 medium", "Block10 low",
-                     "Block11 high", "Block11 medium", "Block11 low",
-                     "Block12 high", "Block12 medium", "Block12 low",
-                     "Block13 high", "Block13 medium", "Block13 low")
-  if (ts_taxonomy[["feature_dtw1"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block1 high")
-  } else if (ts_taxonomy[["feature_dtw1"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block1 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block1 low")
-  }
-  if(ts_taxonomy[["feature_dtw2"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block2 high")
-  } else if (ts_taxonomy[["feature_dtw2"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block2 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block2 low")
-  }
-  if(ts_taxonomy[["feature_dtw3"]] > 0.66){
-    feature_dtwvector <- append(feature_dtwvector, "Block3 high")
-  } else if (ts_taxonomy[["feature_dtw3"]]  > 0.33){
-    feature_dtwvector <- append(feature_dtwvector, "Block3 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block3 low")
-  }
-  if (ts_taxonomy[["feature_dtw4"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block4 high")
-  } else if (ts_taxonomy[["feature_dtw4"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block4 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block4 low")
-  }
-  if (ts_taxonomy[["feature_dtw5"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block5 high")
-  } else if (ts_taxonomy[["feature_dtw5"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block5 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block5 low")
-  }
-  if (ts_taxonomy[["feature_dtw6"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block6 high")
-  } else if (ts_taxonomy[["feature_dtw6"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block6 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block6 low")
-  }
-  if (ts_taxonomy[["feature_dtw7"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block7 high")
-  } else if (ts_taxonomy[["feature_dtw7"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block7 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block7 low")
-  }
-  if (ts_taxonomy[["feature_dtw8"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block8 high")
-  } else if (ts_taxonomy[["feature_dtw8"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block8 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block8 low")
-  }
-  if (ts_taxonomy[["feature_dtw9"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block9 high")
-  } else if (ts_taxonomy[["feature_dtw9"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block9 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block9 low")
-  }
-  if (ts_taxonomy[["feature_dtw10"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block10 high")
-  } else if (ts_taxonomy[["feature_dtw10"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block10 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block10 low")
-  }
-  if (ts_taxonomy[["feature_dtw11"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block11 high")
-  } else if (ts_taxonomy[["feature_dtw10"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block11 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block11 low")
-  }
-  if (ts_taxonomy[["feature_dtw12"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block12 high")
-  } else if (ts_taxonomy[["feature_dtw10"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block12 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block12 low")
-  }
-  if (ts_taxonomy[["feature_dtw13"]] > 0.66) {
-    feature_dtwvector <- append(feature_dtwvector, "Block13 high")
-  } else if (ts_taxonomy[["feature_dtw10"]]  > 0.33) {
-    feature_dtwvector <- append(feature_dtwvector, "Block13 medium")
-  } else {
-    feature_dtwvector <- append(feature_dtwvector, "Block13 low")
-  }
-  # Final feature_dtw factor
-  ts_taxonomy_list[["feature_dtwdistance"]] <-
-    factor(x = feature_dtwvector, levels = factor_levels)
 
   # Feature turning points
   factor_levels <- c("very steady", "more steady", "medium",
@@ -869,24 +903,27 @@ classify_ts <- function(ts, na_option = "kalman"){
       factor("very low", levels = factor_levels)
   }
 
-  #Feature variance
-  factor_levels <- c("very low", "low", "medium", "high", "very high")
-  if (ts_taxonomy[["feature_variance"]] > 0.8) {
-    ts_taxonomy_list[["Variance"]] <-
-      factor("very high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_variance"]]  > 0.6) {
-    ts_taxonomy_list[["Variance"]] <-
-      factor("high", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_variance"]]  > 0.4) {
-    ts_taxonomy_list[["Variance"]] <-
-      factor("medium", levels = factor_levels)
-  } else if (ts_taxonomy[["feature_variance"]]  > 0.2) {
-    ts_taxonomy_list[["Variance"]] <-
-      factor("low", levels = factor_levels)
-  } else {
-    ts_taxonomy_list[["Variance"]] <-
-      factor("very low", levels = factor_levels)
+  if (taxonomy_type == "v1") {
+    #Feature variance
+    factor_levels <- c("very low", "low", "medium", "high", "very high")
+    if (ts_taxonomy[["feature_variance"]] > 0.8) {
+      ts_taxonomy_list[["Variance"]] <-
+        factor("very high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_variance"]]  > 0.6) {
+      ts_taxonomy_list[["Variance"]] <-
+        factor("high", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_variance"]]  > 0.4) {
+      ts_taxonomy_list[["Variance"]] <-
+        factor("medium", levels = factor_levels)
+    } else if (ts_taxonomy[["feature_variance"]]  > 0.2) {
+      ts_taxonomy_list[["Variance"]] <-
+        factor("low", levels = factor_levels)
+    } else {
+      ts_taxonomy_list[["Variance"]] <-
+        factor("very low", levels = factor_levels)
+    }
   }
+
 
   # Feature outliers
   factor_levels <- c("very low", "low", "medium", "high", "very high")
@@ -964,8 +1001,12 @@ classify_ts <- function(ts, na_option = "kalman"){
   factor_levels <- c("Quartile1 less", "Quartile1 medium", "Quartile1 many",
                      "Quartile2 less", "Quartile2 medium", "Quartile2 many",
                      "Quartile3 less", "Quartile3 medium", "Quartile3 many",
-                     "Quartile4 less", "Quartile4 medium", "Quartile4 many")
-  if (ts_taxonomy[["QUARTILE1"]] > 0.66) {
+                     "Quartile4 less", "Quartile4 medium", "Quartile4 many",
+                     "None numeric TS data")
+  if (ts_taxonomy[["QUARTILE1"]] == -1) {
+    feature_distribution_vector <-
+      append(feature_distribution_vector, "None numeric TS data")
+  } else if (ts_taxonomy[["QUARTILE1"]] > 0.66) {
     feature_distribution_vector <-
       append(feature_distribution_vector, "Quartile1 many")
   } else if (ts_taxonomy[["QUARTILE1"]]  > 0.33) {
@@ -975,7 +1016,10 @@ classify_ts <- function(ts, na_option = "kalman"){
     feature_distribution_vector <-
       append(feature_distribution_vector, "Quartile1 less")
   }
-  if (ts_taxonomy[["QUARTILE2"]] > 0.66) {
+  if (ts_taxonomy[["QUARTILE2"]] == -1) {
+    feature_distribution_vector <-
+      append(feature_distribution_vector, "None numeric TS data")
+  } else if (ts_taxonomy[["QUARTILE2"]] > 0.66) {
     feature_distribution_vector <-
       append(feature_distribution_vector, "Quartile2 many")
   } else if (ts_taxonomy[["QUARTILE2"]]  > 0.33) {
@@ -985,7 +1029,10 @@ classify_ts <- function(ts, na_option = "kalman"){
     feature_distribution_vector <-
       append(feature_distribution_vector, "Quartile2 less")
   }
-  if (ts_taxonomy[["QUARTILE3"]] > 0.66) {
+  if (ts_taxonomy[["QUARTILE3"]] == -1) {
+    feature_distribution_vector <-
+      append(feature_distribution_vector, "None numeric TS data")
+  } else if (ts_taxonomy[["QUARTILE3"]] > 0.66) {
     feature_distribution_vector <-
       append(feature_distribution_vector, "Quartile3 many")
   } else if (ts_taxonomy[["QUARTILE3"]]  > 0.33) {
@@ -995,7 +1042,10 @@ classify_ts <- function(ts, na_option = "kalman"){
     feature_distribution_vector <-
       append(feature_distribution_vector, "Quartile3 less")
   }
-  if (ts_taxonomy[["QUARTILE4"]] > 0.66) {
+  if (ts_taxonomy[["QUARTILE4"]] == -1) {
+    feature_distribution_vector <-
+      append(feature_distribution_vector, "None numeric TS data")
+  } else if (ts_taxonomy[["QUARTILE4"]] > 0.66) {
     feature_distribution_vector <-
       append(feature_distribution_vector, "Quartile4 many")
   } else if (ts_taxonomy[["QUARTILE4"]]  > 0.33) {
@@ -1043,6 +1093,6 @@ classify_ts <- function(ts, na_option = "kalman"){
   }
 
   # Return final list with all feature factors
-  return(ts_taxonomy)
+  return(ts_taxonomy_list)
 
 }

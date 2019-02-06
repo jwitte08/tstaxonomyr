@@ -2,22 +2,35 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_entropy}
 \alias{calculate_entropy}
-\title{Generates the approximate entropy of an ts object.}
+\title{Generates the approximate entropy of a ts object.}
 \usage{
-calculate_entropy(ts)
+calculate_entropy(ts, na_option = "mean", edim = 2, r = 0.2 * sd(ts))
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
+
+\item{edim}{The embedding dimension, as for chaotic time series;
+a preferred value is 2.}
+
+\item{r}{Filter factor; work on heart rate variability has suggested
+setting r to be 0.2 times the standard deviation of the data.}
 }
 \value{
 The approximate entropy of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This function generates the approximate entropy of an time series object.
+This function generates the approximate entropy of a time series object.
 As input is only required an object from the class time series.
 Otherwise the function returns an error message.
+Also, for \code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_entropy(ts = tsobject)
+calculate_entropy(ts = datasets::BJsales)
 }

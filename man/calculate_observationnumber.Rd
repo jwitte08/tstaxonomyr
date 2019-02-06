@@ -2,7 +2,7 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_observationnumber}
 \alias{calculate_observationnumber}
-\title{Generates the number of observations of an ts object.}
+\title{Generates the number of observations of a ts object.}
 \usage{
 calculate_observationnumber(ts)
 }
@@ -19,5 +19,5 @@ time series object. As input is only required an object from the
 class time series. Otherwise the function returns an error message.
 }
 \examples{
-calculate_observationnumber(ts = tsobject)
+calculate_observationnumber(ts = datasets::BJsales)
 }

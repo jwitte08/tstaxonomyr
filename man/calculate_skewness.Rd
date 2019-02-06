@@ -2,22 +2,32 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_skewness}
 \alias{calculate_skewness}
-\title{Generates the skewness of an ts object.}
+\title{Generates the skewness of a ts object.}
 \usage{
-calculate_skewness(ts)
+calculate_skewness(ts, na_option = "mean", type = 3)
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
+
+\item{type}{integer of 1 to 3 defining one of the three skewness algorithms
+of the skewness function from the e1071 R package.}
 }
 \value{
 The skewness of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This is a function to generate the skewness of an time series object.
+This is a function to generate the skewness of a time series object.
 As input is only required an object from the class time series.
-Otherwise the function returns an error message.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_skewness(ts = tsobject)
+calculate_skewness(ts = datasets::BJsales)
 }

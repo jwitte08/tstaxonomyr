@@ -2,23 +2,39 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_non_linearity}
 \alias{calculate_non_linearity}
-\title{Generates the non linearity factor of an ts object.}
+\title{Generates the non linearity factor of a ts object.}
 \usage{
-calculate_non_linearity(ts)
+calculate_non_linearity(ts, na_option = "mean", scale = TRUE,
+  type = "Chisq")
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
+
+\item{scale}{Boolean, whether the data should be scaled before computing
+the test statistic. Default value is 'TRUE'.}
+
+\item{type}{String indicating whether the Chi-Squared test or the
+F-test is computed. Thus, valid are "Chisq" (default) and "F".}
 }
 \value{
 The non linearity factor of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This function generates the non linearity factor of an time series object.
+This function generates the non linearity factor of a time series object.
 The Teraesvirta's neural network test for neglected nonlinearity is applied.
 As input is only required an object from the class time series.
-Otherwise the function returns an error message.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
+The code is adopted from Hyndman, Rob J. which provides him under:
+https://robjhyndman.com/hyndsight/tscharacteristics/
 }
 \examples{
-calculate_non_linearity(ts = tsobject)
+calculate_non_linearity(ts = datasets::BJsales)
 }

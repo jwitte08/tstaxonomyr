@@ -2,22 +2,29 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_quartile_distribution}
 \alias{calculate_quartile_distribution}
-\title{Generates the percentage of the values in the 4 quartiles of an ts object.}
+\title{Generates the percentage of the values in the 4 quartiles of a ts object.}
 \usage{
-calculate_quartile_distribution(ts)
+calculate_quartile_distribution(ts, na_option = "mean")
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
 }
 \value{
 The percentage of the values in the 4 quartiles of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
 This is a function to generate the percentage of the values in the 4
-quartiles of an time series object. As input is only required an object from
+quartiles of a time series object. As input is only required an object from
 the class time series. Otherwise the function returns an error message.
+Also, for \code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_quartile_distribution(ts = tsobject)
+calculate_quartile_distribution(ts = datasets::BJsales)
 }

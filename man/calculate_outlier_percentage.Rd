@@ -2,16 +2,19 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_outlier_percentage}
 \alias{calculate_outlier_percentage}
-\title{Generates the percentage of outliers of an ts object.}
+\title{Generates the percentage of outliers of a ts object.}
 \usage{
-calculate_outlier_percentage(ts)
+calculate_outlier_percentage(ts, na_option = "mean")
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
 }
 \value{
 The percentage of outliers of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
 This is a function to generate the percentage of outliers of an
@@ -20,8 +23,12 @@ smaller the significance level 5%. A z_test, chisq_test and t_test is
 applied to identify number of outliers. Then the mean of the three test
 results is used as final number of outliers. As input is only required an
 object from the class time series. Otherwise the function returns
-an error message.
+an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_outlier_percentage(ts = tsobject)
+calculate_outlier_percentage(ts = datasets::BJsales)
 }

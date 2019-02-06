@@ -2,25 +2,34 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_determination_coefficient}
 \alias{calculate_determination_coefficient}
-\title{Generates the coefficient of determination (R2) of an data.frame object.}
+\title{Generates the coefficient of determination (R2) of a data.frame object.}
 \usage{
-calculate_determination_coefficient(df, targetcol)
+calculate_determination_coefficient(df, targetcol, na_option = "mean")
 }
 \arguments{
 \item{df}{A data.frame object.}
 
-\item{targetcol}{A string containing a column name of the \code{df}.}
+\item{targetcol}{A character containing a column name of the \code{df}.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
 }
 \value{
 The R2 of \code{df}.
-If the input is not a data.frame, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This is a function to generate the R2 of an data.frame object.
+This is a function to generate the R2 of a data.frame object.
 As input is only required an object from the class data.frame.
 The data.frame object should represent an multivariate ts.
-Otherwise the function returns an error message.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or 'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_determination_coefficient(df = dataframe_object,targetcol = 'var1')
+calculate_determination_coefficient(
+df = multi_ts_list$`M-TS-1`$data,
+targetcol = colnames(multi_ts_list$`M-TS-1`$data)[1])
 }

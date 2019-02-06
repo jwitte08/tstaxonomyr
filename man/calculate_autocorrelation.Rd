@@ -2,22 +2,37 @@
 % Please edit documentation in R/ts_features.R
 \name{calculate_autocorrelation}
 \alias{calculate_autocorrelation}
-\title{Generates the mean of the autocorrelationfunction (ACF) of an ts object.}
+\title{Generates the mean of the autocorrelationfunction (ACF) of a ts object.}
 \usage{
-calculate_autocorrelation(ts)
+calculate_autocorrelation(ts, na_option = "mean", type = "covariance",
+  demean = TRUE)
 }
 \arguments{
 \item{ts}{A time series object.}
+
+\item{na_option}{A string value containing either 'mean'
+or'kalman'; Standard values is 'mean'.}
+
+\item{type}{String giving the type of acf to be computed. Allowed
+values are "correlation" (the default), "covariance" or "partial".
+Will be partially matched.}
+
+\item{demean}{True/False boolean. Should the covariances be about the
+sample means?}
 }
 \value{
 The mean of the ACF of \code{ts}.
-If the input is not a ts, an error message is returned.
+If the above input params are wrong, an error message is returned.
 }
 \description{
-This is a function to generate the mean of the ACF of an time series object.
+This is a function to generate the mean of the ACF of a time series object.
 As input is only required an object from the class time series.
-Otherwise the function returns an error message.
+Otherwise the function returns an error message. Also, for
+\code{na_option} is only required the string 'mean' or'kalman'
+allowed. This means, that all na values are either replaced by the mean,
+or kalman imputation of the ts.
+The standard value of \code{na_option} is 'mean'.
 }
 \examples{
-calculate_autocorrelation(ts = tsobject)
+calculate_autocorrelation(ts = datasets::BJsales)
 }
